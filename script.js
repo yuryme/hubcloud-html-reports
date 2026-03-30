@@ -699,6 +699,61 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
             this.showIngredientsModal = false;
         },
 
+        printIngredientsSummary: function() {
+            var rows = Array.isArray(this.ingredientSummaryRows) && this.ingredientSummaryRows.length > 0
+                ? this.ingredientSummaryRows
+                : this.getIngredientSummaryRows();
+
+            var tableRowsHtml = "";
+            for (var i = 0; i < rows.length; ++i) {
+                var row = rows[i] || {};
+                tableRowsHtml += "<tr><td>" + this.escapeHtml(row.name || "") + "</td><td style='text-align:right;'>" + this.formatCell(row.sum) + "</td></tr>";
+            }
+
+            if (!tableRowsHtml) {
+                tableRowsHtml = "<tr><td colspan='2'>Нет данных за выбранный период</td></tr>";
+            }
+
+            var printHtml =
+                "<html><head><meta charset='utf-8'><title>Ингредиенты</title>" +
+                "<style>" +
+                "body{font-family:Segoe UI,Arial,sans-serif;padding:18px;color:#1f2f45;}" +
+                "h2{margin:0 0 8px;font-size:20px;}" +
+                ".meta{margin:0 0 12px;color:#4a5d78;font-size:12px;}" +
+                "table{width:100%;border-collapse:collapse;}" +
+                "th,td{border:1px solid #bfcde0;padding:6px 8px;}" +
+                "th{background:#e8eef7;text-align:left;}" +
+                "</style></head><body>" +
+                "<h2>Ингредиенты</h2>" +
+                "<p class='meta'>Уникальных: " + this.formatKpi(this.getUniqueIngredientCount()) +
+                " | Общая сумма: " + this.formatKpi(this.getIngredientSummaryTotal()) + "</p>" +
+                "<table><thead><tr><th>Ингредиент</th><th>Сумма</th></tr></thead><tbody>" +
+                tableRowsHtml +
+                "</tbody></table></body></html>";
+
+            var popup = window.open("", "_blank");
+            if (!popup) {
+                return;
+            }
+
+            popup.document.open();
+            popup.document.write(printHtml);
+            popup.document.close();
+            popup.focus();
+            popup.print();
+            popup.close();
+        },
+
+        escapeHtml: function(value) {
+            var stringValue = String(value || "");
+            return stringValue
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        },
+
         getTotalValue: function() {
             if (!Array.isArray(this.mas_tab)) {
                 return 0;

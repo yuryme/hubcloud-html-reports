@@ -235,6 +235,11 @@
     justify-content: space-between;
     gap: 10px;
   }
+  .ingredients-modal-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
 
   .ingredients-modal-title {
     margin: 0;
@@ -385,7 +390,10 @@
     <aside class="ingredients-modal" :class="{ 'is-open': showIngredientsModal }">
       <div class="ingredients-modal-head">
         <h4 class="ingredients-modal-title">Ингредиенты</h4>
-        <button class="btn btn-sm btn-secondary" v-on:click="closeIngredientsModal">Закрыть</button>
+        <div class="ingredients-modal-actions">
+          <button class="btn btn-sm btn-primary" v-on:click="printIngredientsSummary">Печать</button>
+          <button class="btn btn-sm btn-secondary" v-on:click="closeIngredientsModal">Закрыть</button>
+        </div>
       </div>
       <div class="ingredients-modal-body">
         <div class="ingredients-summary-meta">
