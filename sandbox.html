@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Report Sandbox</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f6f8fb 0%, #eef3f6 100%);
+      color: #1f2937;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .sandbox-banner {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 20px;
+      background: #12344d;
+      color: #fff;
+      box-shadow: 0 10px 25px rgba(18, 52, 77, 0.16);
+    }
+
+    .sandbox-banner strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .sandbox-banner span {
+      display: block;
+      opacity: 0.8;
+      font-size: 13px;
+    }
+
+    .sandbox-links a {
+      color: #9ee7d7;
+      margin-left: 14px;
+      font-size: 13px;
+    }
+
+    .sandbox-shell {
+      min-height: calc(100vh - 68px);
+      padding: 18px;
+    }
+
+    .sandbox-loading,
+    .sandbox-error {
+      max-width: 760px;
+      margin: 48px auto;
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+    }
+
+    @media print {
+      .sandbox-banner {
+        display: none !important;
+      }
+
+      .sandbox-shell {
+        min-height: auto;
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sandbox-banner">
+    <div>
+      <strong>Локальный стенд отчета</strong>
+      <span>Один и тот же index/script, но источник данных переключен на mock-режим.</span>
+    </div>
+    <div class="sandbox-links">
+      <a href="./sandbox.html?mode=mock">mock</a>
+      <a href="./sandbox.html?mode=mock&date=2026-03-30">mock + date</a>
+    </div>
+  </div>
+
+  <div id="sandbox-shell" class="sandbox-shell">
+    <div class="sandbox-loading">
+      Загружаю шаблон отчета...
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    window.HC_QUERY_PARAMETERS = null;
+    window.HC_SANDBOX_PARITY_MODE = "hubcloud";
+
+    var cacheKey = Date.now().toString();
+
+    function postClientError(payload) {
+      fetch("/__client_error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload || {})
+      }).catch(function() {});
+    }
+
+    window.addEventListener("error", function(event) {
+      postClientError({
+        kind: "error",
+        message: event.message || "Unknown error",
+        source: event.filename || "",
+        line: event.lineno || 0,
+        col: event.colno || 0,
+        stack: event.error && event.error.stack ? event.error.stack : ""
+      });
+    });
+
+    window.addEventListener("unhandledrejection", function(event) {
+      var reason = event.reason;
+      var message = "";
+      var stack = "";
+      if (reason && typeof reason === "object") {
+        message = reason.message || String(reason);
+        stack = reason.stack || "";
+      } else {
+        message = String(reason);
+      }
+      postClientError({
+        kind: "unhandledrejection",
+        reason: message,
+        source: "",
+        line: 0,
+        col: 0,
+        stack: stack
+      });
+    });
+
+    function loadScript(src) {
+      return new Promise(function(resolve, reject) {
+        var script = document.createElement("script");
+        script.src = src + (src.indexOf("?") === -1 ? "?" : "&") + "v=" + cacheKey;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    }
+
+    fetch("./index.html?v=" + cacheKey)
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+
+        return response.text();
+      })
+      .then(function(html) {
+        document.getElementById("sandbox-shell").innerHTML = html.replace(/^<</, "<");
+        return loadScript("./script.js");
+      })
+      .catch(function(error) {
+        document.getElementById("sandbox-shell").innerHTML =
+          '<div class="sandbox-error">' +
+          '<h3>Не удалось открыть локальный стенд</h3>' +
+          '<p>Откройте папку через локальный HTTP-сервер, например: <code>python -m http.server 8000</code></p>' +
+          '<p>Детали: ' + String(error) + '</p>' +
+          '</div>';
+      });
+  </script>
+</body>
+</html>

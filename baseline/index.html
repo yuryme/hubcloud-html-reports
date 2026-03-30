@@ -1,0 +1,106 @@
+<div id="root" class="bt-header bt-list" style="padding:22;">
+   
+   
+  
+   <div class="col-sm-4">
+    <div class="btn-group btn-group-sm">
+      <button class="btn btn-sm btn-outline-primary" onclick="toPrint()">
+        <span class="glyphicon glyphicon-print"></span>
+        <span>&nbsp;&#x41F;&#x435;&#x447;&#x430;&#x442;&#x44C;</span>
+      </button>
+
+    </div>
+  </div>
+  
+   
+    <div class="row bt-title">
+        <h2>
+            <span>Задания цеху п/ф (ДЕНЬ)</span>
+            <span class="spinner-border text-primary" role="status" v-if="isWaiting" v-cloak></span>
+        </h2>
+
+    </div>
+
+
+      <div class="col-sm-10">
+        <div class="form-group form-row">
+              <label class="col-sm-1 text-right">Период с</label>
+              <div class="col-sm-2">
+                <input type="date" class="form-control form-control-sm" v-model="period_from" >
+              </div>
+             <label class="col-sm-1 text-right">по</label>
+              <div class="col-sm-2">
+                <input type="date" class="form-control form-control-sm" v-model="period_to" >
+              </div>
+         
+            
+         
+          <b-button v-on:click="onReportClick2" variant="primary">
+                <span class="glyphicon glyphicon-triangle-right"></span>
+                <span>Вывести</span>
+          </b-button>
+              
+        </div>
+      </div>
+
+
+    <div class="print-area bt-list-body" >
+ 
+        <div id="table-container" class="row" style="overflow-y:scroll;">
+            <div id="div_to_print">
+                <div id="tab_in_mas_tab" v-for="tab in mas_tab" class="row" >
+                    <div class="col">
+                    <div ><p class="lead" v-text="mas_tab[tab.num].name"></p></div>    
+                    
+                    <b-table 
+                    borderless="borderless"
+                    bordered="bordered"
+                    :fields="mas_tab[tab.num].fields"  slyle="border=1;" :items="mas_tab[tab.num].items">
+                        <template #cell(col1)="data">
+                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
+                        </template>
+                        <template #cell(col2)="data">
+                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
+                        </template>
+                        <template #cell(col3)="data">
+                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
+                        </template>
+                        <template #cell(col4)="data">
+                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
+                        </template>
+                        <template #cell(col5)="data">
+                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
+                        </template>
+                        <template #cell(col6)="data">
+                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
+                        </template>
+                        <template #cell(sum)="data">
+                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
+                        </template>
+                        
+                        
+                    </b-table>
+                    </div>
+                </div>
+            </div>
+      </div>
+    </div>
+
+
+<!--
+
+style="overflow-y:scroll;"
+
+
+                striped hover                 
+                head-variant="light"
+
+                :sticky-header="stickyHeader"
+                :no-border-collapse="noCollapse"
+
+
+
+-->
+     
+
+</div>
