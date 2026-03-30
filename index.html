@@ -69,6 +69,16 @@
     color: var(--hc-muted);
     margin-bottom: 4px;
   }
+  .print-btn {
+    animation: printFloat 2.6s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @keyframes printFloat {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+    100% { transform: translateY(0); }
+  }
 
   .kpi-row {
     display: grid;
@@ -83,6 +93,14 @@
     padding: 10px 12px;
     min-height: 92px;
     box-shadow: 0 2px 10px rgba(30, 53, 83, 0.05);
+  }
+  .kpi-card.clickable {
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+  }
+  .kpi-card.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(30, 53, 83, 0.1);
   }
 
   .kpi-a { background: var(--kpi-a); }
@@ -181,6 +199,61 @@
     font-style: italic;
   }
 
+  .ingredients-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(21, 33, 49, 0.32);
+    z-index: 1200;
+  }
+
+  .ingredients-modal {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(520px, 94vw);
+    height: 100vh;
+    background: #f8fbff;
+    border-left: 1px solid var(--hc-border);
+    box-shadow: -18px 0 34px rgba(21, 33, 49, 0.2);
+    transform: translateX(104%);
+    transition: transform 0.2s ease;
+    z-index: 1300;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ingredients-modal.is-open {
+    transform: translateX(0);
+  }
+
+  .ingredients-modal-head {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--hc-border);
+    background: #e9eff8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .ingredients-modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f3a5b;
+  }
+
+  .ingredients-modal-body {
+    overflow: auto;
+    padding: 10px 12px 14px;
+  }
+
+  .ingredients-summary-meta {
+    color: #465b79;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
   @media (max-width: 1200px) {
     .hero-title { font-size: 34px; }
     .kpi-value { font-size: 34px; }
@@ -202,7 +275,9 @@
   @media print {
     .hero-band,
     .toolbar-card,
-    .kpi-row {
+    .kpi-row,
+    .ingredients-modal,
+    .ingredients-modal-backdrop {
       display: none !important;
     }
 
@@ -237,7 +312,7 @@
             <span class="glyphicon glyphicon-triangle-right"></span>
             <span>Сформировать отчет</span>
           </button>
-          <button class="btn btn-secondary" style="margin-left:8px;" onclick="toPrint()">
+          <button class="btn btn-secondary print-btn" style="margin-left:8px;" onclick="toPrint()">
             <span class="glyphicon glyphicon-print"></span>
             <span>&nbsp;Печать</span>
           </button>
@@ -254,7 +329,7 @@
         <div class="kpi-label">Изделий</div>
         <div class="kpi-value" v-text="formatKpi(getProductCount())"></div>
       </div>
-      <div class="kpi-card kpi-c">
+      <div class="kpi-card kpi-c clickable" v-on:click="openIngredientsModal" title="Открыть список ингредиентов">
         <div class="kpi-label">Ингредиентов</div>
         <div class="kpi-value" v-text="formatKpi(getUniqueIngredientCount())"></div>
       </div>
@@ -305,5 +380,36 @@
         </div>
       </div>
     </div>
+
+    <div class="ingredients-modal-backdrop" v-if="showIngredientsModal" v-on:click="closeIngredientsModal"></div>
+    <aside class="ingredients-modal" :class="{ 'is-open': showIngredientsModal }">
+      <div class="ingredients-modal-head">
+        <h4 class="ingredients-modal-title">Ингредиенты</h4>
+        <button class="btn btn-sm btn-secondary" v-on:click="closeIngredientsModal">Закрыть</button>
+      </div>
+      <div class="ingredients-modal-body">
+        <div class="ingredients-summary-meta">
+          <span v-text="'Уникальных: ' + formatKpi(getUniqueIngredientCount())"></span>
+          <span v-text="' | Общая сумма: ' + formatKpi(getIngredientSummaryTotal())"></span>
+        </div>
+        <table class="table table-sm report-table">
+          <thead>
+            <tr>
+              <th>Ингредиент</th>
+              <th>Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in ingredientSummaryRows" :key="'ing-' + index">
+              <td class="cell-left" v-text="item.name"></td>
+              <td class="cell-right" v-text="formatCell(item.sum)"></td>
+            </tr>
+            <tr v-if="ingredientSummaryRows.length === 0">
+              <td colspan="2" class="cell-left">Нет данных за выбранный период</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </aside>
   </div>
 </div>

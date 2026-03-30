@@ -40,6 +40,8 @@ var vueApp = new Vue({
     modal_title:"",
     modal_contetn_src:"",
     modal_size:"",
+    showIngredientsModal: false,
+    ingredientSummaryRows: [],
 //      period_from: Date.today().set({day: 1}).toString("yyyy-MM-ddT00:00:00"),
 //      period_to: Date.today().toString("yyyy-MM-ddT23:59:59"),
 //      dateStartPreviousDayEnd: Date.today().set({day: 1, hour: 23, minute: 59}).addDays(-1),
@@ -621,11 +623,23 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
         },
 
         getUniqueIngredientCount: function() {
+            return this.getIngredientSummaryRows().length;
+        },
+
+        normalizeIngredientName: function(rawName) {
+            var value = (rawName || "").toString().trim();
+            if (!value) {
+                return "";
+            }
+            return value.replace(/^[^A-Za-zА-Яа-я0-9]+/, "").trim();
+        },
+
+        getIngredientSummaryRows: function() {
             if (!Array.isArray(this.mas_tab)) {
-                return 0;
+                return [];
             }
 
-            var uniqueIngredients = {};
+            var totalsByIngredient = {};
 
             for (var i = 0; i < this.mas_tab.length; ++i) {
                 var tab = this.mas_tab[i] || {};
@@ -633,21 +647,56 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
 
                 for (var rowIndex = 2; rowIndex < items.length; ++rowIndex) {
                     var row = items[rowIndex] || {};
-                    var rawName = (row.name || "").toString().trim();
-                    if (!rawName) {
+                    var ingredientName = this.normalizeIngredientName(row.name);
+                    if (!ingredientName) {
                         continue;
                     }
 
-                    var normalizedName = rawName.replace(/^[^A-Za-zА-Яа-я0-9]+/, "").trim();
-                    if (!normalizedName) {
-                        continue;
+                    var rowSum = parseFloat(row.sum);
+                    if (isNaN(rowSum)) {
+                        rowSum = 0;
                     }
 
-                    uniqueIngredients[normalizedName] = true;
+                    if (!totalsByIngredient[ingredientName]) {
+                        totalsByIngredient[ingredientName] = 0;
+                    }
+                    totalsByIngredient[ingredientName] += rowSum;
                 }
             }
 
-            return Object.keys(uniqueIngredients).length;
+            var result = [];
+            for (var ingredient in totalsByIngredient) {
+                if (Object.prototype.hasOwnProperty.call(totalsByIngredient, ingredient)) {
+                    result.push({
+                        name: ingredient,
+                        sum: totalsByIngredient[ingredient]
+                    });
+                }
+            }
+
+            result.sort(function(a, b) {
+                return a.name.localeCompare(b.name, "ru");
+            });
+
+            return result;
+        },
+
+        getIngredientSummaryTotal: function() {
+            var rows = this.getIngredientSummaryRows();
+            var total = 0;
+            for (var i = 0; i < rows.length; ++i) {
+                total += parseFloat(rows[i].sum || 0);
+            }
+            return total;
+        },
+
+        openIngredientsModal: function() {
+            this.ingredientSummaryRows = this.getIngredientSummaryRows();
+            this.showIngredientsModal = true;
+        },
+
+        closeIngredientsModal: function() {
+            this.showIngredientsModal = false;
         },
 
         getTotalValue: function() {
