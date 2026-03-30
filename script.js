@@ -620,6 +620,36 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
             return total;
         },
 
+        getUniqueIngredientCount: function() {
+            if (!Array.isArray(this.mas_tab)) {
+                return 0;
+            }
+
+            var uniqueIngredients = {};
+
+            for (var i = 0; i < this.mas_tab.length; ++i) {
+                var tab = this.mas_tab[i] || {};
+                var items = Array.isArray(tab.items) ? tab.items : [];
+
+                for (var rowIndex = 2; rowIndex < items.length; ++rowIndex) {
+                    var row = items[rowIndex] || {};
+                    var rawName = (row.name || "").toString().trim();
+                    if (!rawName) {
+                        continue;
+                    }
+
+                    var normalizedName = rawName.replace(/^[^A-Za-zА-Яа-я0-9]+/, "").trim();
+                    if (!normalizedName) {
+                        continue;
+                    }
+
+                    uniqueIngredients[normalizedName] = true;
+                }
+            }
+
+            return Object.keys(uniqueIngredients).length;
+        },
+
         getTotalValue: function() {
             if (!Array.isArray(this.mas_tab)) {
                 return 0;
