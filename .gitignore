@@ -1,0 +1,13 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+
+# Local dev logs and runtime artifacts
+dev-server*.log
+
+# PowerShell local cache dropped by environment
+Microsoft/Windows/PowerShell/ModuleAnalysisCache
+
+# Optional local backups
+*.bak
+*.tmp
