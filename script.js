@@ -11,6 +11,8 @@ var vueApp = new Vue({
       report_data:[],
       table_items:[],
       partnerId: 0,
+      dataSourceMode: "hubcloud",
+      mockDataUrl: "./mock-data.json",
       borderless:true,
       bordered:true,
       
@@ -109,6 +111,66 @@ var vueApp = new Vue({
               this.period_from = normalizedDate;
               this.period_to = normalizedDate;
           }
+      },
+
+      detectDataSourceMode: function() {
+          var queryParameters = this.getQueryParameters();
+          var requestedMode = (queryParameters.mode || queryParameters.source || "").toString().toLowerCase();
+
+          if (requestedMode === "mock" || requestedMode === "local") {
+              return "mock";
+          }
+
+          if (requestedMode === "hubcloud" || requestedMode === "api") {
+              return "hubcloud";
+          }
+
+          if (queryParameters.mock === "1" || queryParameters.mock === "true") {
+              return "mock";
+          }
+
+          if (window.HC_QUERY_PARAMETERS && typeof window.HC_QUERY_PARAMETERS === "object") {
+              return "hubcloud";
+          }
+
+          return "hubcloud";
+      },
+
+      initializeRuntime: function() {
+          this.dataSourceMode = this.detectDataSourceMode();
+          this.applyPeriodFromQuery();
+      },
+
+      executeDatasourceRequest: function(config, doneCallback, failCallback) {
+          if (this.dataSourceMode === "mock") {
+              $.getJSON(this.mockDataUrl)
+                  .done(function(mockResponse){
+                      var normalizedResponse = mockResponse;
+
+                      if (Array.isArray(mockResponse)) {
+                          normalizedResponse = {
+                              isOK: true,
+                              data: mockResponse
+                          };
+                      } else if (!mockResponse || typeof mockResponse !== "object" || !("isOK" in mockResponse)) {
+                          normalizedResponse = {
+                              isOK: true,
+                              data: []
+                          };
+                      }
+
+                      doneCallback(normalizedResponse);
+                  })
+                  .fail(function(jqXHR, textStatus, errorThrown){
+                      failCallback(jqXHR, textStatus, errorThrown);
+                  });
+
+              return;
+          }
+
+          var payload = JSON.stringify(config);
+          var url = "/api/v1/datasource/execute/";
+          this.sendRequest(url, "POST", payload, doneCallback, failCallback);
       },
         
 //      fullName(value) {
@@ -213,19 +275,13 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
                applyDimensionRights: true,
            };
            
-           var payload = JSON.stringify(config);
-           
-           
-           
-           
-           var url = "/api/v1/datasource/execute/";
-           
-           this.sendRequest(url, "POST", payload, 
+           this.executeDatasourceRequest(config, 
                 function(responseData){
                     
                     //console.log("partners", responseData);
+                    var responseItems = Array.isArray(responseData.data) ? responseData.data : [];
                     
-                    if (responseData.isOK & responseData.data.length>0){
+                    if (responseData.isOK && responseItems.length>0){
                         
                       //  this.partners = responseData.data;
                        // console.log(this.partners);
@@ -238,7 +294,7 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
                           col_i=1;
                           col_name="col"+col_i;
                           nom_title="";
-                          for(var item of responseData.data){
+                          for(var item of responseItems){
                               if( (NameTab!==item.номенклатура_выход_title)  )
                               {
                                   //if(i==0){}
@@ -534,7 +590,7 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
               //this.setListSize();
          }.bind(this));
 
-          this.applyPeriodFromQuery();
+          this.initializeRuntime();
           this.isWaiting = true;
          
           this.loadPartners();
