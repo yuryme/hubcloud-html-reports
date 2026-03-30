@@ -1,106 +1,307 @@
-<div id="root" class="bt-header bt-list" style="padding:22;">
-   
-   
-  
-   <div class="col-sm-4">
-    <div class="btn-group btn-group-sm">
-      <button class="btn btn-sm btn-outline-primary" onclick="toPrint()">
-        <span class="glyphicon glyphicon-print"></span>
-        <span>&nbsp;&#x41F;&#x435;&#x447;&#x430;&#x442;&#x44C;</span>
-      </button>
+﻿<style>
+  :root {
+    --hc-bg: #cfd7e4;
+    --hc-surface: #f6f8fc;
+    --hc-card: #f9fbff;
+    --hc-border: #b7c6de;
+    --hc-text: #19243b;
+    --hc-muted: #4e607c;
+    --hc-blue: #2a5a8a;
+    --hc-blue-deep: #214f80;
+    --hc-accent: #50cfb1;
+    --kpi-a: #95d9e5;
+    --kpi-b: #bfe7cf;
+    --kpi-c: #f1e4b6;
+    --kpi-d: #d7def0;
+  }
 
-    </div>
-  </div>
-  
-   
-    <div class="row bt-title">
-        <h2>
-            <span>Задания цеху п/ф (ДЕНЬ)</span>
-            <span class="spinner-border text-primary" role="status" v-if="isWaiting" v-cloak></span>
-        </h2>
+  #root {
+    padding: 18px;
+    background: var(--hc-bg);
+    min-height: 100vh;
+    color: var(--hc-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+  }
 
-    </div>
+  .report-page {
+    max-width: 1160px;
+    margin: 0 auto;
+  }
 
+  .hero-band {
+    border-radius: 20px;
+    padding: 18px 22px;
+    background: linear-gradient(135deg, var(--hc-blue-deep) 0%, var(--hc-blue) 100%);
+    color: #fff;
+    box-shadow: 0 14px 28px rgba(27, 52, 86, 0.24);
+    margin-bottom: 12px;
+  }
 
-      <div class="col-sm-10">
-        <div class="form-group form-row">
-              <label class="col-sm-1 text-right">Период с</label>
-              <div class="col-sm-2">
-                <input type="date" class="form-control form-control-sm" v-model="period_from" >
-              </div>
-             <label class="col-sm-1 text-right">по</label>
-              <div class="col-sm-2">
-                <input type="date" class="form-control form-control-sm" v-model="period_to" >
-              </div>
-         
-            
-         
-          <b-button v-on:click="onReportClick2" variant="primary">
-                <span class="glyphicon glyphicon-triangle-right"></span>
-                <span>Вывести</span>
-          </b-button>
-              
+  .hero-title {
+    margin: 0;
+    font-size: 54px;
+    line-height: 1;
+    font-weight: 800;
+  }
+
+  .toolbar-card {
+    border: 1px solid var(--hc-border);
+    border-radius: 14px;
+    background: var(--hc-surface);
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .toolbar-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: end;
+  }
+
+  .toolbar-cell {
+    min-width: 180px;
+  }
+
+  .toolbar-label {
+    display: block;
+    font-size: 12px;
+    color: var(--hc-muted);
+    margin-bottom: 4px;
+  }
+
+  .kpi-row {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    margin-bottom: 12px;
+  }
+
+  .kpi-card {
+    border: 1px solid var(--hc-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-height: 92px;
+  }
+
+  .kpi-a { background: var(--kpi-a); }
+  .kpi-b { background: var(--kpi-b); }
+  .kpi-c { background: var(--kpi-c); }
+  .kpi-d { background: var(--kpi-d); }
+
+  .kpi-label {
+    font-size: 11px;
+    color: #36506f;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .kpi-value {
+    font-size: 56px;
+    line-height: 1;
+    font-weight: 800;
+    color: #112f50;
+  }
+
+  .period-note {
+    margin: 6px 0 12px;
+    color: #2f4868;
+    font-size: 16px;
+  }
+
+  #table-container {
+    overflow-y: auto;
+  }
+
+  .section-card {
+    border: 1px solid var(--hc-border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    background: var(--hc-card);
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .section-head {
+    border-bottom: 1px solid var(--hc-border);
+    padding: 10px 14px;
+    background: #e8eef8;
+  }
+
+  .section-title {
+    margin: 0;
+    font-size: 44px;
+    font-weight: 800;
+    color: #112f50;
+  }
+
+  .section-body {
+    padding: 8px;
+  }
+
+  .report-table {
+    margin-bottom: 0 !important;
+    background: #f8fbff;
+  }
+
+  .report-table thead th {
+    background: #dbe5f2;
+    color: #1a324f;
+    border-color: #c5d2e4 !important;
+    font-size: 24px;
+    font-weight: 800;
+    padding: 8px 10px;
+  }
+
+  .report-table td {
+    border-color: #ced9e8 !important;
+    color: #1e314b;
+    font-size: 34px;
+    padding: 8px 10px;
+    vertical-align: middle;
+  }
+
+  .report-table .table-info,
+  .report-table .table-info > td {
+    background: #b8dde5 !important;
+    border-color: #9dc7d3 !important;
+  }
+
+  .cell-left {
+    text-align: left;
+  }
+
+  .cell-right {
+    text-align: right;
+    font-style: italic;
+  }
+
+  @media (max-width: 1200px) {
+    .hero-title { font-size: 40px; }
+    .kpi-value { font-size: 40px; }
+    .section-title { font-size: 34px; }
+    .report-table thead th { font-size: 18px; }
+    .report-table td { font-size: 24px; }
+  }
+
+  @media (max-width: 768px) {
+    #root { padding: 10px; }
+    .kpi-row { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    .hero-title { font-size: 30px; }
+    .kpi-value { font-size: 30px; }
+    .section-title { font-size: 26px; }
+    .report-table thead th { font-size: 14px; }
+    .report-table td { font-size: 16px; }
+  }
+
+  @media print {
+    .hero-band,
+    .toolbar-card,
+    .kpi-row {
+      display: none !important;
+    }
+
+    #table-container {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+  }
+</style>
+
+<div id="root" class="bt-header bt-list">
+  <div class="report-page">
+    <section class="hero-band">
+      <h2 class="hero-title">
+        <span>Задания цеху</span>
+        <span class="spinner-border text-light" role="status" v-if="isWaiting" v-cloak style="margin-left:10px;"></span>
+      </h2>
+    </section>
+
+    <section class="toolbar-card">
+      <div class="toolbar-grid">
+        <div class="toolbar-cell">
+          <label class="toolbar-label">Период с</label>
+          <input type="date" class="form-control" v-model="period_from">
+        </div>
+        <div class="toolbar-cell">
+          <label class="toolbar-label">Период по</label>
+          <input type="date" class="form-control" v-model="period_to">
+        </div>
+        <div>
+          <button class="btn btn-primary" v-on:click="onReportClick2">
+            <span class="glyphicon glyphicon-triangle-right"></span>
+            <span>Сформировать отчет</span>
+          </button>
+          <button class="btn btn-secondary" style="margin-left:8px;" onclick="toPrint()">
+            <span class="glyphicon glyphicon-print"></span>
+            <span>&nbsp;Печать</span>
+          </button>
         </div>
       </div>
+    </section>
 
+    <section class="kpi-row">
+      <div class="kpi-card kpi-a">
+        <div class="kpi-label">Разделов</div>
+        <div class="kpi-value" v-text="formatKpi(getSectionCount())"></div>
+      </div>
+      <div class="kpi-card kpi-b">
+        <div class="kpi-label">Изделий</div>
+        <div class="kpi-value" v-text="formatKpi(getProductCount())"></div>
+      </div>
+      <div class="kpi-card kpi-c">
+        <div class="kpi-label">Строк</div>
+        <div class="kpi-value" v-text="formatKpi(getRowCount())"></div>
+      </div>
+      <div class="kpi-card kpi-d">
+        <div class="kpi-label">Итого</div>
+        <div class="kpi-value" v-text="formatKpi(getTotalValue())"></div>
+      </div>
+    </section>
 
-    <div class="print-area bt-list-body" >
- 
-        <div id="table-container" class="row" style="overflow-y:scroll;">
-            <div id="div_to_print">
-                <div id="tab_in_mas_tab" v-for="tab in mas_tab" class="row" >
-                    <div class="col">
-                    <div ><p class="lead" v-text="mas_tab[tab.num].name"></p></div>    
-                    
-                    <b-table 
-                    borderless="borderless"
-                    bordered="bordered"
-                    :fields="mas_tab[tab.num].fields"  slyle="border=1;" :items="mas_tab[tab.num].items">
-                        <template #cell(col1)="data">
-                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
-                        </template>
-                        <template #cell(col2)="data">
-                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
-                        </template>
-                        <template #cell(col3)="data">
-                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
-                        </template>
-                        <template #cell(col4)="data">
-                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
-                        </template>
-                        <template #cell(col5)="data">
-                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
-                        </template>
-                        <template #cell(col6)="data">
-                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
-                        </template>
-                        <template #cell(sum)="data">
-                            <p style="text-align:right;"><i>{{ data.value.toFixed(3) }}</i></p>
-                        </template>
-                        
-                        
-                    </b-table>
-                    </div>
-                </div>
+    <div class="period-note" v-text="'Дата отчета: ' + period_to"></div>
+
+    <div class="print-area bt-list-body">
+      <div id="table-container" class="row">
+        <div id="div_to_print" class="col-12">
+          <div id="tab_in_mas_tab" v-for="tab in mas_tab" :key="tab.num" class="section-card">
+            <div class="section-head">
+              <h3 class="section-title" v-text="mas_tab[tab.num].name"></h3>
             </div>
+
+            <div class="section-body">
+              <table class="table table-sm report-table">
+                <thead>
+                  <tr>
+                    <th
+                      v-for="field in mas_tab[tab.num].fields"
+                      :key="'head-' + tab.num + '-' + field.key"
+                      v-text="field.label">
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, rowIndex) in mas_tab[tab.num].items"
+                    :key="'row-' + tab.num + '-' + rowIndex"
+                    :class="{ 'table-info': row && row._rowVariant === 'info' }">
+                    <td
+                      v-for="field in mas_tab[tab.num].fields"
+                      :key="'cell-' + tab.num + '-' + rowIndex + '-' + field.key"
+                      :class="field.key === 'name' ? 'cell-left' : 'cell-right'">
+                      <span v-if="field.key === 'name'" v-text="row[field.key]"></span>
+                      <span v-else v-text="formatCell(row[field.key])"></span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-
-
-<!--
-
-style="overflow-y:scroll;"
-
-
-                striped hover                 
-                head-variant="light"
-
-                :sticky-header="stickyHeader"
-                :no-border-collapse="noCollapse"
-
-
-
--->
-     
-
+  </div>
 </div>

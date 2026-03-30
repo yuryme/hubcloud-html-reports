@@ -180,8 +180,8 @@ var vueApp = new Vue({
       onReportClick2:function() {
        
        
-        this.isWating = true;
-        console.log(this.isWating);
+        this.isWaiting = true;
+        console.log(this.isWaiting);
         this.mas_tab=[];
 
         this.setSize();
@@ -231,7 +231,7 @@ var vueApp = new Vue({
       
       loadPartners: function(){
           
-            this.isWating = true;
+            this.isWaiting = true;
             this.DateStart = this.toPeriodBoundary(this.period_from, false);
             this.DateFinish = this.toPeriodBoundary(this.period_to, true);
             
@@ -473,7 +473,7 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
                for (var key3 in this.mas_tab[t_i].items[index]) {
                    
                
-                       if(key3=="col1" | key3=="col2" | key3=="col3" | key3=="col4" | key3=="col5" | key3=="col6" | key3=="col7" | key3=="col8" | key3=="col9" | key3=="col10" | key3=="col11")
+                       if(key3=="col1" || key3=="col2" || key3=="col3" || key3=="col4" || key3=="col5" || key3=="col6" || key3=="col7" || key3=="col8" || key3=="col9" || key3=="col10" || key3=="col11")
                          {
                                summ=summ+parseFloat(this.mas_tab[t_i].items[index][key3]);
 
@@ -578,6 +578,76 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
           $("#table-container").css("max-height", tableHeight);
             
         }, // setSize
+
+        formatCell: function(value) {
+            if (value === null || typeof value === "undefined" || value === "") {
+                return "";
+            }
+            var numberValue = parseFloat(value);
+            if (isNaN(numberValue)) {
+                return String(value);
+            }
+            return numberValue.toFixed(3);
+        },
+
+        getSectionCount: function() {
+            return Array.isArray(this.mas_tab) ? this.mas_tab.length : 0;
+        },
+
+        getProductCount: function() {
+            if (!Array.isArray(this.mas_tab)) {
+                return 0;
+            }
+            var total = 0;
+            for (var i = 0; i < this.mas_tab.length; ++i) {
+                var tab = this.mas_tab[i] || {};
+                var fields = Array.isArray(tab.fields) ? tab.fields : [];
+                total += Math.max(fields.length - 2, 0);
+            }
+            return total;
+        },
+
+        getRowCount: function() {
+            if (!Array.isArray(this.mas_tab)) {
+                return 0;
+            }
+            var total = 0;
+            for (var i = 0; i < this.mas_tab.length; ++i) {
+                var tab = this.mas_tab[i] || {};
+                var items = Array.isArray(tab.items) ? tab.items : [];
+                total += items.length;
+            }
+            return total;
+        },
+
+        getTotalValue: function() {
+            if (!Array.isArray(this.mas_tab)) {
+                return 0;
+            }
+            var total = 0;
+            for (var i = 0; i < this.mas_tab.length; ++i) {
+                var tab = this.mas_tab[i] || {};
+                var items = Array.isArray(tab.items) ? tab.items : [];
+                if (items.length > 1 && typeof items[1].sum !== "undefined") {
+                    total += parseFloat(items[1].sum || 0);
+                }
+            }
+            return total;
+        },
+
+        formatKpi: function(value) {
+            var numberValue = parseFloat(value || 0);
+            if (isNaN(numberValue)) {
+                return "0";
+            }
+            if (Math.abs(numberValue) >= 1000) {
+                return numberValue.toLocaleString("ru-RU", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+            }
+            if (Math.abs(numberValue % 1) > 0) {
+                return numberValue.toFixed(3);
+            }
+            return numberValue.toFixed(0);
+        },
    
     }, // methods
     
