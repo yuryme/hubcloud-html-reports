@@ -35,7 +35,7 @@
 }
 .hero-title {
   margin: 0;
-  font-size: 46px;
+  font-size: 37px;
   line-height: 1;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -56,7 +56,7 @@
 .toolbar-cell { min-width: 180px; }
 .toolbar-label {
   display: block;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--hc-muted);
   margin-bottom: 4px;
 }
@@ -81,6 +81,10 @@
   padding: 10px 12px;
   min-height: 92px;
   box-shadow: 0 2px 10px rgba(30, 53, 83, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
 }
 .kpi-card.clickable {
   cursor: pointer;
@@ -95,7 +99,7 @@
 .kpi-c { background: var(--kpi-c); }
 .kpi-d { background: var(--kpi-d); }
 .kpi-label {
-  font-size: 11px;
+  font-size: 9px;
   color: #4d607a;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -103,7 +107,7 @@
   margin-bottom: 2px;
 }
 .kpi-value {
-  font-size: 44px;
+  font-size: 35px;
   line-height: 1;
   font-weight: 700;
   color: #1e3859;
@@ -111,7 +115,7 @@
 .period-note {
   margin: 6px 0 12px;
   color: #2f4868;
-  font-size: 16px;
+  font-size: 13px;
 }
 #table-container { overflow-y: auto; }
 .section-card {
@@ -131,7 +135,7 @@
 }
 .section-title {
   margin: 0;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   color: #183556;
 }
@@ -144,21 +148,21 @@
   background: #e7edf6;
   color: #243f61;
   border-color: #d2dbe9 !important;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   padding: 8px 10px;
 }
 .report-table td {
   border-color: #d8e0ec !important;
   color: #22364f;
-  font-size: 24px;
+  font-size: 19px;
   padding: 8px 10px;
   vertical-align: middle;
 }
 .report-table .table-info,
 .report-table .table-info > td {
-  background: #d7e8ee !important;
-  border-color: #c1d7df !important;
+  background: #c2dcec !important;
+  border-color: #aecde0 !important;
 }
 .cell-left { text-align: left; }
 .cell-right {
@@ -203,7 +207,7 @@
 }
 .ingredients-modal-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: #1f3a5b;
 }
@@ -213,24 +217,24 @@
 }
 .ingredients-summary-meta {
   color: #465b79;
-  font-size: 13px;
+  font-size: 10px;
   margin-bottom: 8px;
 }
 @media (max-width: 1200px) {
-  .hero-title { font-size: 36px; }
-  .kpi-value { font-size: 34px; }
-  .section-title { font-size: 28px; }
-  .report-table thead th { font-size: 18px; }
-  .report-table td { font-size: 20px; }
+  .hero-title { font-size: 29px; }
+  .kpi-value { font-size: 27px; }
+  .section-title { font-size: 22px; }
+  .report-table thead th { font-size: 14px; }
+  .report-table td { font-size: 16px; }
 }
 @media (max-width: 768px) {
   #root { padding: 10px; }
   .kpi-row { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
-  .hero-title { font-size: 30px; }
-  .kpi-value { font-size: 30px; }
-  .section-title { font-size: 26px; }
-  .report-table thead th { font-size: 14px; }
-  .report-table td { font-size: 16px; }
+  .hero-title { font-size: 24px; }
+  .kpi-value { font-size: 24px; }
+  .section-title { font-size: 21px; }
+  .report-table thead th { font-size: 11px; }
+  .report-table td { font-size: 13px; }
 }
 @media print {
   .hero-band,

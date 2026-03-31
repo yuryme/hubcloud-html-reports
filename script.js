@@ -718,8 +718,8 @@ temptable.tab6 | группа_1 (2,3,6) | ComputeFunction (r, номенклат
                 "<html><head><meta charset='utf-8'><title>Ингредиенты</title>" +
                 "<style>" +
                 "body{font-family:Segoe UI,Arial,sans-serif;padding:18px;color:#1f2f45;}" +
-                "h2{margin:0 0 8px;font-size:20px;}" +
-                ".meta{margin:0 0 12px;color:#4a5d78;font-size:12px;}" +
+                "h2{margin:0 0 8px;font-size:16px;}" +
+                ".meta{margin:0 0 12px;color:#4a5d78;font-size:10px;}" +
                 "table{width:100%;border-collapse:collapse;}" +
                 "th,td{border:1px solid #bfcde0;padding:6px 8px;}" +
                 "th{background:#e8eef7;text-align:left;}" +
