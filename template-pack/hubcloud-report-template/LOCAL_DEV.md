@@ -11,6 +11,7 @@ Develop and debug report UI/logic locally in a way that is compatible with HubCl
   - prefer plain `<table>` rendering.
 - Keep `index.html` free of `<style>` tags (styles belong to `hc-report.css` / HubCloud `Styles` tab).
 - Keep files UTF-8 and avoid mojibake.
+- Start any new report work with encoding gate.
 
 ## Start local
 ```powershell
@@ -22,13 +23,14 @@ Open:
 http://127.0.0.1:8000/sandbox.html?mode=mock&date=2026-03-30
 ```
 
-## Pre-transfer checks (mandatory)
+## Mandatory checks
 ```powershell
+node tools/hc-encoding-gate.js
 node tools/hubcloud-preflight.js
 node tools/hc-transfer-check.js
 ```
 
-Only transfer when preflight returns `PASS`.
+Only transfer when all checks return `PASS`.
 
 ## Files to transfer to HubCloud
 - `index.html` -> HubCloud `HTML`
@@ -36,8 +38,13 @@ Only transfer when preflight returns `PASS`.
 - `script.js` -> HubCloud `Scripts`
 
 ## Commit policy
-- Commit only when user explicitly разрешил commit in current dialogue turn.
+- Commit only when the user explicitly approved commit in the current turn.
 - By default after edits, stay uncommitted and report status.
+
+## Safe file writing rule
+- Prefer `apply_patch` for edits.
+- For generated files use explicit UTF-8 writes from Node tools.
+- Do not rely on shell redirection or console encoding for Russian text files.
 
 ## Notes
 - `sandbox.html`, `dev-server.js`, `mock-data.json` are local tooling only.

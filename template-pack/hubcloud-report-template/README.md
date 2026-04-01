@@ -11,6 +11,7 @@ This folder is generated from the approved project baseline.
 
 ## Quick Start
 1. Run local checks from project root:
+   - `node tools/hc-encoding-gate.js`
    - `node tools/hubcloud-preflight.js`
    - `node tools/hc-transfer-check.js`
 2. Copy files into HubCloud tabs by manifest mapping.

@@ -11,7 +11,7 @@ Apply it when editing `index.html`, `hc-report.css`, `script.js`, `sandbox.html`
   2. keep behavior compatible,
   3. transfer final `index.html`, `hc-report.css`, and `script.js` into HubCloud tabs.
 - Local test URL:
-  `http://127.0.0.1:8010/sandbox.html?mode=mock&date=2026-03-30`
+  `http://127.0.0.1:8000/sandbox.html?mode=mock&date=2026-03-30`
 - Mock source:
   `mock-data.json`
 
