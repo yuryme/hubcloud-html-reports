@@ -1,0 +1,128 @@
+﻿<div id="root" class="bt-header bt-list">
+  <div class="report-page">
+    <section class="hero-band">
+      <h2 class="hero-title">
+        <span>Задания цеху</span>
+        <span class="spinner-border text-light" role="status" v-if="isWaiting" v-cloak style="margin-left:10px;"></span>
+      </h2>
+    </section>
+
+    <section class="toolbar-card">
+      <div class="toolbar-grid">
+        <div class="toolbar-cell">
+          <label class="toolbar-label">Период с</label>
+          <input type="date" class="form-control" v-model="period_from">
+        </div>
+        <div class="toolbar-cell">
+          <label class="toolbar-label">Период по</label>
+          <input type="date" class="form-control" v-model="period_to">
+        </div>
+        <div>
+          <button class="btn btn-primary" v-on:click="onReportClick2">
+            <span class="glyphicon glyphicon-triangle-right"></span>
+            <span>Сформировать отчет</span>
+          </button>
+          <button class="btn btn-secondary print-btn" style="margin-left:8px;" onclick="toPrint()">
+            <span class="glyphicon glyphicon-print"></span>
+            <span>&nbsp;Печать</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="kpi-row">
+      <div class="kpi-card kpi-a">
+        <div class="kpi-label">Разделов</div>
+        <div class="kpi-value" v-text="formatKpi(getSectionCount())"></div>
+      </div>
+      <div class="kpi-card kpi-b">
+        <div class="kpi-label">Изделий</div>
+        <div class="kpi-value" v-text="formatKpi(getProductCount())"></div>
+      </div>
+      <div class="kpi-card kpi-c clickable" v-on:click="openIngredientsModal" title="Открыть список ингредиентов">
+        <div class="kpi-label">Ингредиентов</div>
+        <div class="kpi-value" v-text="formatKpi(getUniqueIngredientCount())"></div>
+      </div>
+      <div class="kpi-card kpi-d">
+        <div class="kpi-label">Итого</div>
+        <div class="kpi-value" v-text="formatKpi(getTotalValue())"></div>
+      </div>
+    </section>
+
+    <div class="period-note" v-text="'Дата отчета: ' + period_to"></div>
+
+    <div class="print-area bt-list-body">
+      <div id="table-container" class="row">
+        <div id="div_to_print" class="col-12">
+          <div id="tab_in_mas_tab" v-for="tab in mas_tab" :key="tab.num" class="section-card">
+            <div class="section-head">
+              <h3 class="section-title" v-text="mas_tab[tab.num].name"></h3>
+            </div>
+
+            <div class="section-body">
+              <table class="table table-sm report-table">
+                <thead>
+                  <tr>
+                    <th
+                      v-for="field in mas_tab[tab.num].fields"
+                      :key="'head-' + tab.num + '-' + field.key"
+                      v-text="field.label">
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, rowIndex) in mas_tab[tab.num].items"
+                    :key="'row-' + tab.num + '-' + rowIndex"
+                    :class="{ 'table-info': row && row._rowVariant === 'info' }">
+                    <td
+                      v-for="field in mas_tab[tab.num].fields"
+                      :key="'cell-' + tab.num + '-' + rowIndex + '-' + field.key"
+                      :class="field.key === 'name' ? 'cell-left' : 'cell-right'">
+                      <span v-if="field.key === 'name'" v-text="row[field.key]"></span>
+                      <span v-else v-text="formatCell(row[field.key])"></span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ingredients-modal-backdrop" v-if="showIngredientsModal" v-on:click="closeIngredientsModal"></div>
+    <aside class="ingredients-modal" :class="{ 'is-open': showIngredientsModal }">
+      <div class="ingredients-modal-head">
+        <h4 class="ingredients-modal-title">Ингредиенты</h4>
+        <div class="ingredients-modal-actions">
+          <button class="btn btn-sm btn-primary" v-on:click="printIngredientsSummary">Печать</button>
+          <button class="btn btn-sm btn-secondary" v-on:click="closeIngredientsModal">Закрыть</button>
+        </div>
+      </div>
+      <div class="ingredients-modal-body">
+        <div class="ingredients-summary-meta">
+          <span v-text="'Уникальных: ' + formatKpi(getUniqueIngredientCount())"></span>
+          <span v-text="' | Общая сумма: ' + formatKpi(getIngredientSummaryTotal())"></span>
+        </div>
+        <table class="table table-sm report-table">
+          <thead>
+            <tr>
+              <th>Ингредиент</th>
+              <th>Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in ingredientSummaryRows" :key="'ing-' + index">
+              <td class="cell-left" v-text="item.name"></td>
+              <td class="cell-right" v-text="formatCell(item.sum)"></td>
+            </tr>
+            <tr v-if="ingredientSummaryRows.length === 0">
+              <td colspan="2" class="cell-left">Нет данных за выбранный период</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </aside>
+  </div>
+</div>

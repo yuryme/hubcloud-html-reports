@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sample Report Sandbox</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./hc-report.css">
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f6f8fb 0%, #eef3f6 100%);
+      color: #1f2937;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .sandbox-shell {
+      min-height: 100vh;
+      padding: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sandbox-shell">
+    <div id="sandbox-shell">Loading report...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+  <script>
+    window.HC_QUERY_PARAMETERS = null;
+
+    function loadScript(src) {
+      return new Promise(function(resolve, reject) {
+        var script = document.createElement("script");
+        script.src = src + "?v=" + Date.now();
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    }
+
+    fetch("./index.html?v=" + Date.now())
+      .then(function(response) {
+        return response.text();
+      })
+      .then(function(html) {
+        document.getElementById("sandbox-shell").innerHTML = html;
+        return loadScript("./script.js");
+      })
+      .catch(function(error) {
+        document.getElementById("sandbox-shell").innerHTML = "<pre>" + String(error) + "</pre>";
+      });
+  </script>
+</body>
+</html>

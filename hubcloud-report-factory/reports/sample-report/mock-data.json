@@ -1,0 +1,49 @@
+{
+  "isOK": true,
+  "warehouse": "Основной",
+  "group": "Хлеб",
+  "data": [
+    {
+      "item_name": "Багет с маком",
+      "opening_balance": 114.0,
+      "incoming": 53.0,
+      "outgoing": 51.0,
+      "closing_balance": 116.0
+    },
+    {
+      "item_name": "Хлеб деревенский",
+      "opening_balance": 295.0,
+      "incoming": 104.0,
+      "outgoing": 104.0,
+      "closing_balance": 295.0
+    },
+    {
+      "item_name": "Сдобная булочка",
+      "opening_balance": 17.0,
+      "incoming": 68.0,
+      "outgoing": 68.0,
+      "closing_balance": 17.0
+    },
+    {
+      "item_name": "Батон к чаю 300 г",
+      "opening_balance": -5.0,
+      "incoming": 0.0,
+      "outgoing": 0.0,
+      "closing_balance": -5.0
+    },
+    {
+      "item_name": "Батон нарезной 400 г",
+      "opening_balance": 799.0,
+      "incoming": 97.0,
+      "outgoing": 97.0,
+      "closing_balance": 799.0
+    },
+    {
+      "item_name": "Батончик сдобный",
+      "opening_balance": 394.0,
+      "incoming": 387.0,
+      "outgoing": 387.0,
+      "closing_balance": 394.0
+    }
+  ]
+}

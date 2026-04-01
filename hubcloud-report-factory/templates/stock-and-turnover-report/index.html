@@ -1,0 +1,120 @@
+<div id="root" class="bt-header bt-list">
+  <div class="report-page">
+    <section class="hero-band">
+      <h2 class="hero-title">
+        <span v-text="reportTitle"></span>
+      </h2>
+    </section>
+
+    <section class="toolbar-card">
+      <div class="toolbar-layout">
+        <div class="toolbar-grid">
+          <div class="toolbar-cell">
+            <label class="toolbar-label">&#1044;&#1072;&#1090;&#1072; &#1089;</label>
+            <input type="date" class="form-control" v-model="period_from">
+          </div>
+          <div class="toolbar-cell">
+            <label class="toolbar-label">&#1044;&#1072;&#1090;&#1072; &#1087;&#1086;</label>
+            <input type="date" class="form-control" v-model="period_to">
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn btn-primary" v-on:click="loadReport">&#1057;&#1092;&#1086;&#1088;&#1084;&#1080;&#1088;&#1086;&#1074;&#1072;&#1090;&#1100; &#1086;&#1090;&#1095;&#1077;&#1090;</button>
+          </div>
+        </div>
+
+        <div class="filter-panel">
+          <div class="filter-panel-title">&#1060;&#1080;&#1083;&#1100;&#1090;&#1088;&#1099;</div>
+          <div class="filter-grid">
+            <div class="toolbar-cell filter-cell">
+              <label class="toolbar-label">&#1057;&#1082;&#1083;&#1072;&#1076;</label>
+              <select class="form-control" v-model="warehouseValue" v-on:change="onWarehouseChange">
+                <option value="">&#1042;&#1089;&#1077; &#1089;&#1082;&#1083;&#1072;&#1076;&#1099;</option>
+                <option v-for="option in warehouseOptions" :key="'warehouse-' + option.value" :value="option.value" v-text="option.title"></option>
+              </select>
+            </div>
+            <div class="toolbar-cell filter-cell">
+              <label class="toolbar-label">&#1043;&#1088;&#1091;&#1087;&#1087;&#1072;</label>
+              <select class="form-control" v-model="groupValue" v-on:change="onGroupChange">
+                <option value="">&#1042;&#1089;&#1077; &#1075;&#1088;&#1091;&#1087;&#1087;&#1099;</option>
+                <option v-for="option in groupOptions" :key="'group-' + option.value" :value="option.value" v-text="option.title"></option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="kpi-row">
+      <div class="kpi-card" v-for="card in summaryCards" :key="card.label">
+        <div class="kpi-label" v-text="card.label"></div>
+        <div class="kpi-value" v-text="card.value"></div>
+      </div>
+    </section>
+
+    <div class="period-note" v-text="periodLabel"></div>
+
+    <div class="print-area bt-list-body">
+      <div id="table-container">
+        <div class="section-card">
+          <div class="section-head">
+            <h3 class="section-title">&#1054;&#1089;&#1090;&#1072;&#1090;&#1082;&#1080; &#1090;&#1086;&#1074;&#1072;&#1088;&#1086;&#1074; &#1085;&#1072; &#1089;&#1082;&#1083;&#1072;&#1076;&#1077;</h3>
+          </div>
+          <div class="section-body">
+            <div class="report-table-scroll">
+              <table class="table table-sm report-table">
+                <thead>
+                  <tr>
+                    <th
+                      v-for="column in balanceColumns"
+                      :key="column.key"
+                      :class="column.alignClass"
+                      v-text="column.label">
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, rowIndex) in balanceRows" :key="'balance-' + rowIndex">
+                    <td
+                      v-for="column in balanceColumns"
+                      :key="column.key"
+                      :class="column.alignClass">
+                      <span
+                        v-if="column.type === 'number'"
+                        :class="{ 'negative-value': Number(row[column.key]) < 0 }"
+                        v-text="formatNumber(row[column.key])">
+                      </span>
+                      <span v-else v-text="formatCell(row[column.key])"></span>
+                    </td>
+                  </tr>
+                  <tr v-if="balanceRows.length === 0">
+                    <td colspan="5">&#1053;&#1077;&#1090; &#1076;&#1072;&#1085;&#1085;&#1099;&#1093; &#1079;&#1072; &#1074;&#1099;&#1073;&#1088;&#1072;&#1085;&#1085;&#1099;&#1081; &#1087;&#1077;&#1088;&#1080;&#1086;&#1076;.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card" v-for="section in sections" :key="section.title">
+          <div class="section-head">
+            <h3 class="section-title" v-text="section.title"></h3>
+          </div>
+          <div class="section-body">
+            <table class="table table-sm report-table">
+              <thead>
+                <tr>
+                  <th v-for="column in section.columns" :key="column.key" v-text="column.label"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, rowIndex) in section.rows" :key="section.title + '-' + rowIndex">
+                  <td v-for="column in section.columns" :key="column.key" v-text="formatCell(row[column.key])"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+{
+  "name": "hubcloud-report-template",
+  "version": "1.0.0",
+  "hubcloudTabs": {
+    "HTML": "index.html",
+    "Styles": "hc-report.css",
+    "Scripts": "script.js"
+  },
+  "requiredChecks": [
+    "node --check script.js",
+    "node tools/hubcloud-preflight.js",
+    "node tools/hc-transfer-check.js"
+  ],
+  "commitPolicy": "Commit only after explicit user approval in current dialogue turn."
+}

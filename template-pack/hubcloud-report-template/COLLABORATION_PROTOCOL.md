@@ -1,14 +1,13 @@
-﻿# Collaboration Protocol
+# Collaboration Protocol
 
 ## Scope
 This protocol defines how we work on HubCloud report updates in this repository.
 
 ## Work Format
-1. Run encoding gate first.
-2. Implement and test in sandbox.
-3. Run preflight checks.
-4. Prepare HubCloud tab payloads (`HTML`, `Styles`, `Scripts`).
-5. Transfer to HubCloud and validate.
+1. Implement and test in sandbox first.
+2. Run preflight checks.
+3. Prepare HubCloud tab payloads (`HTML`, `Styles`, `Scripts`).
+4. Transfer to HubCloud and validate.
 
 ## Commit Policy (Mandatory)
 - Commits are allowed only after explicit user permission in the current dialogue turn.
@@ -25,14 +24,9 @@ This protocol defines how we work on HubCloud report updates in this repository.
 - `script.js` -> `Scripts`
 
 ## Mandatory Local Checks
-- `node tools/hc-encoding-gate.js`
 - `node --check script.js`
 - `node tools/hubcloud-preflight.js`
 - `node tools/hc-transfer-check.js`
-
-## Safe Editing Rule
-- Do not create or rewrite Russian-text files through shell-dependent encoding paths.
-- Prefer `apply_patch` or UTF-8 writes in Node tools.
 
 ## Delivery Note
 Every handoff should explicitly mention:

@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = process.cwd();
-const DEFAULT_EXTENSIONS = [".html", ".js", ".json", ".md", ".css"];
+const DEFAULT_EXTENSIONS = [".html", ".js", ".json", ".md", ".css", ".txt"];
 const IGNORE_DIRS = new Set([".git", "node_modules", "Microsoft"]);
 const IGNORE_FILES = new Set([
   "tools/encoding-dryrun.js",
@@ -61,6 +61,13 @@ function findIssues(content) {
   if (matches && matches.length) {
     const sample = [...new Set(matches)].slice(0, 3).join(", ");
     issues.push(`possible mojibake pattern (${sample})`);
+  }
+
+  const latinUtf8MojibakePattern = /(?:Ð.|Ñ.){2,}/g;
+  const latinMatches = content.match(latinUtf8MojibakePattern);
+  if (latinMatches && latinMatches.length) {
+    const sample = [...new Set(latinMatches)].slice(0, 3).join(", ");
+    issues.push(`possible UTF-8/Latin mojibake pattern (${sample})`);
   }
 
   return issues;
