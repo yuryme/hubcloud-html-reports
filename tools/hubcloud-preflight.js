@@ -2,6 +2,7 @@ const { spawnSync } = require("child_process");
 
 const steps = [
   { title: "Encoding guard", cmd: ["node", "tools/encoding-guard.js"] },
+  { title: "DS check", cmd: ["node", "tools/hc-ds-check.js"] },
   { title: "HubCloud compatibility", cmd: ["node", "tools/hubcloud-compat-check.js"] },
   { title: "JS syntax", cmd: ["node", "--check", "script.js"] }
 ];

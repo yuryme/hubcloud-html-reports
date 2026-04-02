@@ -23,6 +23,7 @@ This protocol defines how we work on HubCloud report updates in this repository.
 - `index.html` -> `HTML`
 - `hc-report.css` -> `Styles`
 - `script.js` -> `Scripts`
+- Upload order (mandatory): `Scripts` -> `HTML` -> `Styles` -> `Ctrl+F5`.
 
 ## Mandatory Local Checks
 - `node tools/hc-encoding-gate.js`
@@ -33,6 +34,8 @@ This protocol defines how we work on HubCloud report updates in this repository.
 ## Safe Editing Rule
 - Do not create or rewrite Russian-text files through shell-dependent encoding paths.
 - Prefer `apply_patch` or UTF-8 writes in Node tools.
+- HubCloud DS rule (mandatory): the final executable query block must NOT end with `;`.
+- `;` is allowed only for intermediate temp-table definitions (`... as ИмяТаблицы;`).
 
 ## Delivery Note
 Every handoff should explicitly mention:

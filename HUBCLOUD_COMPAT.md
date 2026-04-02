@@ -22,6 +22,8 @@ Use these defaults for production transfer:
 - Do not place `<style>` tags in `index.html` template.
 - Keep files UTF-8 and avoid mojibake (`Р...`, `С...`).
 - Keep datasource mode default to `hubcloud`.
+- In datasource DSL, do not put `;` at the end of the final executable query block.
+- Use `;` only for intermediate temp-table definitions (`... as table_name;`).
 
 ## Transfer checklist (before copy to HubCloud)
 1. Run `node tools/hubcloud-compat-check.js`.
