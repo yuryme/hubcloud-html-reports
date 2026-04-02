@@ -1,0 +1,6 @@
+# DS filters
+# Put filter option queries here.
+
+## filter: example_filter
+catalog.example | Select (id, title) | OrderBy (title)
+

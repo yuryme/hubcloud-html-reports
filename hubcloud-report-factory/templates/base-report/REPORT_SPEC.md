@@ -8,7 +8,7 @@
 ## Data Source
 - Source type:
 - Source name:
-- Query / endpoint:
+- Query / endpoint: see `DS.txt`
 - Parameters:
 
 ## Data Contract

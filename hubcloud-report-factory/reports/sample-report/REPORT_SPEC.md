@@ -8,7 +8,7 @@
 ## Data Source
 - Source type: HubCloud datasource DSL + local mock JSON
 - Source name: Warehouse stock balances
-- Query / endpoint: see `data_source.txt`
+- Query / endpoint: see `DS.txt`
 - Parameters: warehouse, dateStart, dateFinish, product group
 
 ## Data Contract
@@ -27,7 +27,7 @@
 ## HubCloud Notes
 - HTML specifics: plain markup only, no style tag, no moustache output
 - Styles specifics: all visual rules live in `hc-report.css`
-- Scripts specifics: mock mode works now, HC datasource wiring is next step based on `data_source.txt`
+- Scripts specifics: mock mode works now, HC datasource wiring is next step based on `DS.txt`
 
 ## Acceptance
 - Sandbox renders correctly

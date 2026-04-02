@@ -8,7 +8,7 @@
 ## Data Source
 - Source type: HubCloud datasource DSL + local mock JSON
 - Source name: Stock / turnover datasource
-- Query / endpoint: see `data_source.txt`
+- Query / endpoint: see `DS.txt`
 - Parameters:
   - warehouse id
   - group id

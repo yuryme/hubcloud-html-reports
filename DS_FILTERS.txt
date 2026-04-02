@@ -1,0 +1,9 @@
+﻿# DS filters
+# Положите здесь запросы для списков фильтров.
+# Можно в формате блоков `## filter:<name>` или просто DSL подряд.
+
+## filter: product_group
+catalog.группа | Select (id, title) | OrderBy (title)
+
+## filter: warehouse
+catalog.склад | Select (id, title) | OrderBy (title)

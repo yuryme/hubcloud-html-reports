@@ -26,6 +26,7 @@ http://127.0.0.1:8000/sandbox.html?mode=mock&date=2026-03-30
 ## Mandatory checks
 ```powershell
 node tools/hc-encoding-gate.js
+node tools/hc-ds-check.js
 node tools/hubcloud-preflight.js
 node tools/hc-transfer-check.js
 ```
@@ -45,6 +46,13 @@ Only transfer when all checks return `PASS`.
 - Prefer `apply_patch` for edits.
 - For generated files use explicit UTF-8 writes from Node tools.
 - Do not rely on shell redirection or console encoding for Russian text files.
+
+## Datasource catalog (mandatory)
+- User inputs only:
+  - `DS.txt` (main report query),
+  - `DS_FILTERS.txt` (queries for filter option lists).
+- `DS_CATALOG.md` is generated/updated automatically by `node tools/hc-ds-check.js`.
+- Main rule: final executable line in each query must not end with `;`.
 
 ## Notes
 - `sandbox.html`, `dev-server.js`, `mock-data.json` are local tooling only.

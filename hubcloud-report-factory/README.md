@@ -19,6 +19,7 @@ We build the system iteratively:
 ## First Iteration Scope
 - reusable base report template,
 - report spec file,
+- datasource text file (`DS.txt`),
 - scaffold tool for new reports,
 - explicit workflow and commit rules,
 - encoding gate before implementation starts.

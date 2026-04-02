@@ -1,0 +1,4 @@
+# Datasource Query Draft
+
+# Store the raw HubCloud datasource / SQL / DSL query text for this report here.
+# Keep executable request-building logic in `script.js`.

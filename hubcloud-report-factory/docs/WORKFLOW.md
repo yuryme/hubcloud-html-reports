@@ -2,7 +2,7 @@
 
 ## Standard Flow
 1. Create report workspace from template.
-2. Fill `REPORT_SPEC.md`.
+2. Fill `REPORT_SPEC.md` and `DS.txt`.
 3. Build mock-data version first.
 4. Validate sandbox rendering.
 5. Adapt or implement datasource logic.
@@ -19,6 +19,7 @@ Each report should keep:
 - `hc-report.css` for HubCloud `Styles`
 - `script.js` for HubCloud `Scripts`
 - `REPORT_SPEC.md` for business/data contract
+- `DS.txt` for raw datasource / query text
 
 ## Template Choice
 - `base-report`

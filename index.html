@@ -1,75 +1,50 @@
 ﻿<div id="root" class="bt-header bt-list">
-  <div class="report-page">
-    <header class="report-head">
-      <h2 class="report-title">
-        Отчет: Себестоимость теста
-        <span class="build-badge" v-text="'build ' + buildVersion"></span>
-        <span class="spinner-border text-primary" role="status" v-if="isWaiting" v-cloak></span>
-      </h2>
+  <div class="core-shell">
+    <header class="core-topbar">
+      <div class="core-title-row">
+        <h2 class="core-title" v-text="reportTitle"></h2>
+        <div class="core-actions">
+          <button class="btn btn-primary" v-on:click="loadReport">Отчет</button>
+          <button class="btn btn-success" v-on:click="exportToExcel">Excel</button>
+          <button class="btn btn-default" v-on:click="printReport">Печать</button>
+        </div>
+      </div>
 
-      <div class="report-actions">
-        <button class="btn btn-primary" v-on:click="onReportClick">
-          <span class="glyphicon glyphicon-triangle-right"></span>
-          <span>Отчет</span>
-        </button>
-        <button class="btn btn-success" v-on:click="exportToExcel">
-          <span class="glyphicon glyphicon-save"></span>
-          <span>Excel</span>
-        </button>
+      <div class="core-period-row">
+        <label>Период:</label>
+        <input type="date" class="form-control core-date" v-model="period_from">
+        <span class="core-sep">-</span>
+        <input type="date" class="form-control core-date" v-model="period_to">
+      </div>
+
+      <div class="core-filters" v-if="filters.length > 0">
+        <div class="core-filter" v-for="flt in filters" :key="flt.key">
+          <label class="core-filter-label" v-text="flt.title"></label>
+          <select class="form-control" v-model="filterValues[flt.key]" v-on:change="onFilterChange(flt.key)">
+            <option v-for="opt in filterOptions[flt.key] || []" :key="flt.key + '-' + opt.value" :value="opt.value" v-text="opt.title"></option>
+          </select>
+        </div>
       </div>
     </header>
 
-    <section class="table-wrap">
-      <table class="table table-sm cost-table">
-        <thead
-          class="interactive-pointer"
-          title="Вывести список"
-          v-on:mouseenter="onTableHeaderEnter"
-          v-on:mouseleave="onTableHeaderLeave"
-          v-on:click.left="onTableHeaderClick">
-          <tr>
-            <th>Тесто / Ингредиенты</th>
-            <th>Кол-во (гр)</th>
-            <th>Цена</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="displayRows.length === 0 && !isWaiting">
-            <td colspan="3" class="empty-cell">Нет данных</td>
-          </tr>
-          <tr
-            v-for="(row, index) in displayRows"
-            :key="'row-' + index"
-            :class="[row.type, 'interactive-pointer']"
-            :title="getRowActionTitle(row, index)"
-            v-on:click.left="onRecipeRowClick(row, index)">
-            <td class="col-name" v-text="row.name"></td>
-            <td class="col-number" v-text="formatNumber(row.qtyGr)"></td>
-            <td class="col-number" v-text="formatNumber(row.price)"></td>
-          </tr>
-        </tbody>
-      </table>
+    <section class="core-table-panel">
+      <div class="core-table-scroll">
+        <table class="core-table">
+          <thead>
+            <tr>
+              <th v-for="col in columns" :key="'h-' + col.key" :class="col.alignClass || ''" v-text="col.label"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="rows.length === 0 && !isWaiting">
+              <td :colspan="columns.length" class="core-empty">Нет данных</td>
+            </tr>
+            <tr v-for="(row, idx) in rows" :key="'r-' + idx">
+              <td v-for="col in columns" :key="'c-' + idx + '-' + col.key" :class="cellClass(col, row[col.key])" v-text="formatCell(col, row[col.key])"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
-
-    <div class="dough-modal-backdrop" v-if="showDoughModal" v-on:click="closeDoughModal"></div>
-    <aside class="dough-modal" :class="{ 'is-open': showDoughModal }">
-      <div class="dough-modal-head">
-        <h4 class="dough-modal-title">Наименования теста</h4>
-        <button class="btn btn-sm btn-secondary" v-on:click="closeDoughModal">Закрыть</button>
-      </div>
-      <div class="dough-modal-body">
-        <ul class="dough-list">
-          <li :class="{ selected: !selectedDoughName }" v-on:click="selectDough('')">Все теста</li>
-          <li
-            v-for="(name, idx) in getDoughNames()"
-            :key="'dough-' + idx"
-            :class="{ selected: selectedDoughName === name }"
-            v-on:click="selectDough(name)"
-            v-text="name">
-          </li>
-        </ul>
-        <div v-if="getDoughNames().length === 0" class="dough-empty">Список пуст</div>
-      </div>
-    </aside>
   </div>
 </div>

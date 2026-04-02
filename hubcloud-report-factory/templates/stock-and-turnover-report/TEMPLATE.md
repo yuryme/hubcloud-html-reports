@@ -25,7 +25,7 @@
 
 ## Следующие шаги после scaffold
 1. Обновить `REPORT_SPEC.md`
-2. Заменить `data_source.txt`
+2. Заменить `DS.txt`
 3. Адаптировать `buildHubCloudExpression()`
 4. Проверить `mock-data.json`
 5. Прогнать:

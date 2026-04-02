@@ -8,6 +8,7 @@
   },
   "requiredChecks": [
     "node --check script.js",
+    "node tools/hc-ds-check.js",
     "node tools/hubcloud-preflight.js",
     "node tools/hc-transfer-check.js"
   ],

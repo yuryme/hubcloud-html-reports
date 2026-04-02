@@ -1,0 +1,4 @@
+# Datasource Query Draft
+
+# Put the raw datasource / SQL / DSL query text here.
+# Keep request-building logic in `script.js`, but store the source query draft in this file.

@@ -1,0 +1,5 @@
+# Datasource Query Draft
+
+# The previous sample query text was removed because it was already stored with broken encoding.
+# Put the raw HubCloud datasource / SQL / DSL query text here in clean UTF-8.
+# Keep executable request-building logic in `script.js`.
