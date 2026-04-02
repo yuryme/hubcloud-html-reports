@@ -1,50 +1,112 @@
 ﻿<div id="root" class="bt-header bt-list">
-  <div class="core-shell">
-    <header class="core-topbar">
-      <div class="core-title-row">
-        <h2 class="core-title" v-text="reportTitle"></h2>
-        <div class="core-actions">
-          <button class="btn btn-primary" v-on:click="loadReport">Отчет</button>
-          <button class="btn btn-success" v-on:click="exportToExcel">Excel</button>
-          <button class="btn btn-default" v-on:click="printReport">Печать</button>
-        </div>
-      </div>
-
-      <div class="core-period-row">
-        <label>Период:</label>
-        <input type="date" class="form-control core-date" v-model="period_from">
-        <span class="core-sep">-</span>
-        <input type="date" class="form-control core-date" v-model="period_to">
-      </div>
-
-      <div class="core-filters" v-if="filters.length > 0">
-        <div class="core-filter" v-for="flt in filters" :key="flt.key">
-          <label class="core-filter-label" v-text="flt.title"></label>
-          <select class="form-control" v-model="filterValues[flt.key]" v-on:change="onFilterChange(flt.key)">
-            <option v-for="opt in filterOptions[flt.key] || []" :key="flt.key + '-' + opt.value" :value="opt.value" v-text="opt.title"></option>
-          </select>
-        </div>
-      </div>
-    </header>
-
-    <section class="core-table-panel">
-      <div class="core-table-scroll">
-        <table class="core-table">
-          <thead>
-            <tr>
-              <th v-for="col in columns" :key="'h-' + col.key" :class="col.alignClass || ''" v-text="col.label"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="rows.length === 0 && !isWaiting">
-              <td :colspan="columns.length" class="core-empty">Нет данных</td>
-            </tr>
-            <tr v-for="(row, idx) in rows" :key="'r-' + idx">
-              <td v-for="col in columns" :key="'c-' + idx + '-' + col.key" :class="cellClass(col, row[col.key])" v-text="formatCell(col, row[col.key])"></td>
-            </tr>
-          </tbody>
-        </table>
+  <div class="report-page">
+    <section class="hero-band">
+      <div class="hero-head">
+        <h2 class="hero-title">
+          <span v-text="reportTitle"></span>
+        </h2>
+        <button class="btn btn-default settings-btn" type="button">Настройки</button>
       </div>
     </section>
+
+    <section class="toolbar-card">
+      <div class="toolbar-layout">
+        <div class="toolbar-grid">
+          <div class="toolbar-actions">
+            <button class="btn btn-primary" v-on:click="loadReport">Отчет</button>
+            <button class="btn btn-success" v-on:click="exportToExcel">Excel</button>
+            <button class="btn btn-default" v-on:click="printReport">Печать</button>
+          </div>
+
+          <div class="period-cluster">
+            <button type="button" class="period-nav-btn" v-on:click="shiftPeriod(-1)">&#x2039;</button>
+            <div class="toolbar-cell">
+              <label class="toolbar-label">Дата с</label>
+              <input type="date" class="form-control" v-model="period_from">
+            </div>
+            <div class="period-dash">-</div>
+            <div class="toolbar-cell">
+              <label class="toolbar-label">Дата по</label>
+              <input type="date" class="form-control" v-model="period_to">
+            </div>
+            <button type="button" class="period-nav-btn" v-on:click="shiftPeriod(1)">&#x203A;</button>
+          </div>
+        </div>
+
+        <div class="filter-panel">
+          <div class="filter-panel-title">Фильтры</div>
+          <div class="filter-grid">
+            <div class="toolbar-cell filter-cell" v-for="flt in filters" :key="flt.key">
+              <label class="toolbar-label" v-text="flt.title"></label>
+              <select
+                class="form-control filter-select"
+                :multiple="!!flt.multiple"
+                v-model="filterValues[flt.key]"
+                v-on:change="onFilterChange(flt.key)"
+              >
+                <option
+                  v-for="opt in filterOptions[flt.key] || []"
+                  :key="flt.key + '-' + opt.value"
+                  :value="opt.value"
+                  v-text="opt.title"
+                ></option>
+              </select>
+              <div class="filter-hint" v-if="flt.multiple">Можно выбрать несколько складов</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="print-area bt-list-body">
+      <div id="table-container">
+        <div class="section-card">
+          <div class="section-head">
+            <h3 class="section-title">Остатки с оборотами</h3>
+          </div>
+          <div class="section-body">
+            <div class="report-table-scroll">
+              <table class="table table-sm report-table">
+                <colgroup>
+                  <col class="report-col-rownum">
+                  <col class="report-col-name">
+                  <col class="report-col-num">
+                  <col class="report-col-num">
+                  <col class="report-col-num">
+                  <col class="report-col-num">
+                  <col class="report-col-num report-col-wide">
+                  <col class="report-col-num">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th class="report-rownum-head">#</th>
+                    <th
+                      v-for="col in columns"
+                      :key="'h-' + col.key"
+                      :class="col.alignClass || ''"
+                      v-text="col.label">
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="rows.length === 0 && !isWaiting">
+                    <td :colspan="columns.length + 1" class="report-empty">Нет данных</td>
+                  </tr>
+                  <tr v-for="(row, idx) in rows" :key="'r-' + idx">
+                    <td class="report-rownum" v-text="idx + 1"></td>
+                    <td
+                      v-for="col in columns"
+                      :key="'c-' + idx + '-' + col.key"
+                      :class="cellClass(col, row[col.key])"
+                      v-text="formatCell(col, row[col.key])">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

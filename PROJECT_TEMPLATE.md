@@ -6,6 +6,15 @@ This repository now acts as a reusable template for:
 - safe HubCloud-compatible implementation patterns,
 - standardized change workflow.
 
+## Mandatory Governance
+- Before changing report datasource logic, parameter mapping, or template structure, read `COLLABORATION_PROTOCOL.md`.
+- `COLLABORATION_PROTOCOL.md` contains mandatory rules for:
+  - `DS.txt` <-> `script.js` synchronization,
+  - datasource placeholder replacement,
+  - multi-select filter typing,
+  - template conformance,
+  - delivery verification before transfer to HubCloud.
+
 ## Canonical File Roles
 - `index.html`: markup for HubCloud `HTML` tab.
 - `hc-report.css`: styles for HubCloud `Styles` tab.

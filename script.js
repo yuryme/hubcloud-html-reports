@@ -4,42 +4,58 @@ var HC_DEBUG = false;
 var vueApp = new Vue({
   el: '#root',
   data: {
-    reportTitle: 'Новый отчет',
+    reportTitle: 'Отчет: Склад Розничный',
     buildVersion: CORE_BUILD,
     isWaiting: false,
     dataSourceMode: 'hubcloud',
     mockDataUrl: './mock-data.json',
 
-    period_from: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString('en-CA'),
+    period_from: new Date().toLocaleDateString('en-CA'),
     period_to: new Date().toLocaleDateString('en-CA'),
     dateStart: '',
     dateFinish: '',
     dateStartPrevEnd: '',
 
-    // CORE: default filter contract. You can change titles, aliases, and option expressions for new reports.
     filters: [
       {
-        key: 'warehouse',
-        title: 'Склад',
-        aliases: ['warehouse', 'склад', '$warehouse', '$склад'],
+        key: 'склад',
+        dsKey: 'склад',
+        title: 'Склад*',
+        multiple: true,
+        aliases: ['склад', 'warehouse', '$склад', '$warehouse'],
         optionsExpression: 'catalog.склад | Select(id, title)'
       },
       {
-        key: 'group',
-        title: 'Номенклатурная группа',
-        aliases: ['group', 'номенклатурная_группа', 'группа', '$group', '$группа'],
-        optionsExpression: 'catalog.группа | Select(id, title)'
+        key: 'группа',
+        dsKey: 'группа',
+        title: 'Группа',
+        multiple: false,
+        aliases: ['группа', 'group', '$группа', '$group'],
+        optionsExpression: 'catalog.группа | Select (id,title)'
       }
     ],
 
-    filterValues: {},
-    filterTitles: {},
-    filterOptions: {},
+    filterValues: {
+      склад: [],
+      группа: ''
+    },
+    filterTitles: {
+      склад: [],
+      группа: ''
+    },
+    filterOptions: {
+      склад: [],
+      группа: []
+    },
 
-    // CORE: report columns are customizable per report.
     columns: [
-      { key: 'name', label: 'Наименование', type: 'text', alignClass: 'text-left' },
-      { key: 'value', label: 'Значение', type: 'number', alignClass: 'text-right' }
+      { key: 'номенклатура', label: 'Номенклатура', type: 'text', alignClass: 'text-left' },
+      { key: 'остаток_на_начало', label: 'Остаток на начало', type: 'number', alignClass: 'text-right' },
+      { key: 'приход', label: 'Приход', type: 'number', alignClass: 'text-right' },
+      { key: 'расход', label: 'Расход', type: 'number', alignClass: 'text-right' },
+      { key: 'возврат', label: 'Возврат', type: 'number', alignClass: 'text-right' },
+      { key: 'инвентаризация', label: 'Инвентаризация', type: 'number', alignClass: 'text-right' },
+      { key: 'остаток_на_конец', label: 'Остаток на конец', type: 'number', alignClass: 'text-right' }
     ],
     rows: []
   },
@@ -83,12 +99,8 @@ var vueApp = new Vue({
       return null;
     },
 
-    normalizeParameterObject: function(value) {
-      if (Array.isArray(value)) {
-        return value.length > 0 ? this.normalizeParameterObject(value[0]) : { value: '', title: '' };
-      }
-
-      if (value && typeof value === 'object') {
+    normalizeSingleParameter: function(value) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
         var rawValue = value.id;
         if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
           rawValue = value.value;
@@ -114,7 +126,10 @@ var vueApp = new Vue({
           rawTitle = rawValue;
         }
 
-        return { value: String(rawValue), title: String(rawTitle) };
+        return {
+          value: typeof rawValue === 'undefined' || rawValue === null ? '' : String(rawValue),
+          title: typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '' ? String(rawValue || '') : String(rawTitle)
+        };
       }
 
       if (value === null || typeof value === 'undefined') {
@@ -122,6 +137,31 @@ var vueApp = new Vue({
       }
 
       return { value: String(value), title: String(value) };
+    },
+
+    normalizeParameterObject: function(value, multiple) {
+      if (Array.isArray(value)) {
+        var list = [];
+        var titles = [];
+        for (var i = 0; i < value.length; ++i) {
+          var item = this.normalizeSingleParameter(value[i]);
+          if (!item.value) {
+            continue;
+          }
+          list.push(item.value);
+          titles.push(item.title);
+        }
+        return {
+          value: multiple ? list : (list[0] || ''),
+          title: multiple ? titles : (titles[0] || '')
+        };
+      }
+
+      var normalized = this.normalizeSingleParameter(value);
+      return {
+        value: multiple ? (normalized.value ? [normalized.value] : []) : normalized.value,
+        title: multiple ? (normalized.title ? [normalized.title] : []) : normalized.title
+      };
     },
 
     normalizeDateValue: function(value) {
@@ -148,6 +188,19 @@ var vueApp = new Vue({
         return parsed.toLocaleDateString('en-CA');
       }
       return '';
+    },
+
+    shiftPeriod: function(days) {
+      var fromDate = new Date(this.normalizeDateValue(this.period_from) + 'T00:00:00');
+      var toDate = new Date(this.normalizeDateValue(this.period_to) + 'T00:00:00');
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        return;
+      }
+      fromDate.setDate(fromDate.getDate() + days);
+      toDate.setDate(toDate.getDate() + days);
+      this.period_from = fromDate.toLocaleDateString('en-CA');
+      this.period_to = toDate.toLocaleDateString('en-CA');
+      this.loadReport();
     },
 
     toPeriodBoundary: function(dateValue, isEndOfDay) {
@@ -209,7 +262,7 @@ var vueApp = new Vue({
 
       for (var i = 0; i < this.filters.length; ++i) {
         var filter = this.filters[i];
-        var param = this.normalizeParameterObject(this.getFirstDefinedValue(qp, filter.aliases || [filter.key]));
+        var param = this.normalizeParameterObject(this.getFirstDefinedValue(qp, filter.aliases || [filter.key]), !!filter.multiple);
         this.filterValues[filter.key] = param.value;
         this.filterTitles[filter.key] = param.title;
         this.filterOptions[filter.key] = [];
@@ -294,6 +347,17 @@ var vueApp = new Vue({
     },
 
     formatDslLiteral: function(value) {
+      if (Array.isArray(value)) {
+        var parts = [];
+        for (var i = 0; i < value.length; ++i) {
+          var current = this.formatDslLiteral(value[i]);
+          if (current !== "''") {
+            parts.push(current);
+          }
+        }
+        return parts.length > 0 ? parts.join(', ') : "''";
+      }
+
       if (value === null || typeof value === 'undefined') {
         return "''";
       }
@@ -325,7 +389,9 @@ var vueApp = new Vue({
 
     replaceDsPlaceholders: function(expression, tokenMap) {
       var out = String(expression || '');
-      var keys = Object.keys(tokenMap || {});
+      var keys = Object.keys(tokenMap || {}).sort(function(a, b) {
+        return b.length - a.length;
+      });
       for (var i = 0; i < keys.length; ++i) {
         var key = keys[i];
         out = out.split('&' + key).join(tokenMap[key]);
@@ -333,20 +399,47 @@ var vueApp = new Vue({
       return out;
     },
 
-    // EXTENSION POINT: Replace this with report-specific DS text.
-    // Use placeholders like &dateStart, &dateFinish, &warehouse, &group when needed.
     getDatasourceExpression: function() {
-      return '';
+      return [
+        'catalog.номенклатура | Select (id as номенклатура, title as номенклатура_title, группа) | Gettitle() as t1;',
+        '',
+        'движение_ном | склад (&склад) | Period(,&dateStart.EndDay().AddDays(-1)) | GroupBy(номенклатура, колво as на_начало_) as на_начало;',
+        'движение_ном | склад (&склад) | операция (11) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as приход_, операция) | GroupBy (номенклатура, приход_, операция) as приход;',
+        'движение_ном | склад (&склад) | операция (14) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as расход_, операция) | GroupBy (номенклатура, расход_, операция) as расход;',
+        'движение_ном | склад (&склад) | операция (15) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as возврат_, операция) | GroupBy (номенклатура, возврат_, операция) as возврат;',
+        'движение_ном | склад (&склад) | операция (10) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as инвентаризация_, операция) | GroupBy (номенклатура, инвентаризация_, операция) as инвентаризация;',
+        '',
+        'TempTable.на_начало | FullJoinAuto(приход, приход.номенклатура =номенклатура) | FullJoinAuto(расход, расход.номенклатура =номенклатура) | FullJoinAuto(возврат, возврат.номенклатура =номенклатура)',
+        '| FullJoinAuto(инвентаризация, инвентаризация.номенклатура =номенклатура)',
+        '',
+        '| AddColumn (x, number, 0) | Coalesce (приход, приход_, x) | Coalesce (расход__, расход_, x) | Coalesce (на_начало, на_начало_, x) | Coalesce (возврат__, возврат_, x) | Coalesce (инвентаризация, инвентаризация_, x)',
+        '| Compute(расход, расход__ * -1) | Compute(возврат, возврат__ * -1)',
+        '| Compute(на_конец, на_начало + приход - расход - возврат + инвентаризация) | DeleteColumn (на_начало_, приход_, расход_, расход__, возврат_, возврат__, инвентаризация_, x)',
+        '| LeftJoinAuto(t1, t1.номенклатура =номенклатура) | группа (&группа)',
+        '| Compute(x, на_начало*на_начало+приход*приход+расход*расход+на_конец*на_конец+возврат*возврат+инвентаризация*инвентаризация) | Having (x>0) | OrderBy (номенклатура_title)'
+      ].join('\n');
     },
 
-    // EXTENSION POINT: map DS row to UI row shape.
-    normalizeHubCloudRow: function(item) {
-      var normalized = {};
-      for (var i = 0; i < this.columns.length; ++i) {
-        var col = this.columns[i];
-        normalized[col.key] = item[col.key];
+    readField: function(item, keys, fallback) {
+      for (var i = 0; i < keys.length; ++i) {
+        var key = keys[i];
+        if (Object.prototype.hasOwnProperty.call(item, key) && item[key] !== null && typeof item[key] !== 'undefined') {
+          return item[key];
+        }
       }
-      return normalized;
+      return fallback;
+    },
+
+    normalizeHubCloudRow: function(item) {
+      return {
+        номенклатура: this.readField(item, ['номенклатура_title', 'item_name', 'name'], ''),
+        остаток_на_начало: Number(this.readField(item, ['на_начало', 'opening_balance'], 0) || 0),
+        приход: Number(this.readField(item, ['приход', 'incoming'], 0) || 0),
+        расход: Number(this.readField(item, ['расход', 'outgoing'], 0) || 0),
+        возврат: Number(this.readField(item, ['возврат', 'return_qty'], 0) || 0),
+        инвентаризация: Number(this.readField(item, ['инвентаризация', 'inventory_qty'], 0) || 0),
+        остаток_на_конец: Number(this.readField(item, ['на_конец', 'closing_balance'], 0) || 0)
+      };
     },
 
     buildHubCloudExpression: function() {
@@ -362,13 +455,27 @@ var vueApp = new Vue({
 
       for (var i = 0; i < this.filters.length; ++i) {
         var filter = this.filters[i];
-        tokenMap[filter.key] = this.formatDslLiteral(this.filterValues[filter.key]);
+        tokenMap[filter.dsKey || filter.key] = this.formatDslLiteral(this.filterValues[filter.key]);
       }
 
       var expression = this.getDatasourceExpression();
       expression = this.replaceDsPlaceholders(expression, tokenMap);
       expression = this.sanitizeDslNumericLiterals(expression);
       return expression;
+    },
+
+    applyDefaultFilterSelection: function(filter) {
+      var options = this.filterOptions[filter.key] || [];
+      var currentValue = this.filterValues[filter.key];
+      if (filter.multiple) {
+        if (!Array.isArray(currentValue) || currentValue.length === 0) {
+          this.filterValues[filter.key] = options.length > 0 ? [options[0].value] : [];
+        }
+        return;
+      }
+      if ((!currentValue || currentValue.length === 0) && options.length > 0) {
+        this.filterValues[filter.key] = options[0].value;
+      }
     },
 
     loadHubCloudFilters: function() {
@@ -393,9 +500,7 @@ var vueApp = new Vue({
             function(responseData) {
               var items = Array.isArray(responseData.data) ? responseData.data : [];
               this.filterOptions[filter.key] = this.normalizeOptionList(items);
-              if (!this.filterValues[filter.key] && this.filterOptions[filter.key].length > 0) {
-                this.filterValues[filter.key] = this.filterOptions[filter.key][0].value;
-              }
+              this.applyDefaultFilterSelection(filter);
               this.onFilterChange(filter.key);
               deferred.resolve();
             }.bind(this),
@@ -414,6 +519,9 @@ var vueApp = new Vue({
       this.isWaiting = true;
 
       var expression = this.buildHubCloudExpression();
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[HC-DS-FINAL]', expression);
+      }
       if (!String(expression).trim()) {
         this.isWaiting = false;
         this.rows = [];
@@ -450,10 +558,22 @@ var vueApp = new Vue({
 
     onFilterChange: function(filterKey) {
       var options = this.filterOptions[filterKey] || [];
-      var value = String(this.filterValues[filterKey] || '');
-      for (var i = 0; i < options.length; ++i) {
-        if (String(options[i].value) === value) {
-          this.filterTitles[filterKey] = options[i].title;
+      var selectedValue = this.filterValues[filterKey];
+      if (Array.isArray(selectedValue)) {
+        var selectedTitles = [];
+        for (var i = 0; i < options.length; ++i) {
+          if (selectedValue.indexOf(String(options[i].value)) >= 0) {
+            selectedTitles.push(options[i].title);
+          }
+        }
+        this.filterTitles[filterKey] = selectedTitles;
+        return;
+      }
+
+      var value = String(selectedValue || '');
+      for (var j = 0; j < options.length; ++j) {
+        if (String(options[j].value) === value) {
+          this.filterTitles[filterKey] = options[j].title;
           return;
         }
       }
@@ -503,14 +623,14 @@ var vueApp = new Vue({
         return;
       }
 
-      var header = '';
+      var header = '<th>#</th>';
       for (var c = 0; c < this.columns.length; ++c) {
         header += '<th>' + this.escapeHtml(this.columns[c].label) + '</th>';
       }
 
       var body = '';
       for (var i = 0; i < this.rows.length; ++i) {
-        body += '<tr>';
+        body += '<tr><td>' + this.escapeHtml(i + 1) + '</td>';
         for (var j = 0; j < this.columns.length; ++j) {
           var col = this.columns[j];
           body += '<td>' + this.escapeHtml(this.formatCell(col, this.rows[i][col.key])) + '</td>';
@@ -524,7 +644,7 @@ var vueApp = new Vue({
       var blob = new Blob(['\uFEFF', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
       var link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'report_' + this.period_from + '_to_' + this.period_to + '.xls';
+      link.download = 'retail_stock_turnover_' + this.period_from + '_to_' + this.period_to + '.xls';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -550,16 +670,18 @@ var vueApp = new Vue({
           .done(function(resp) {
             var payload = resp || {};
             var mockRows = Array.isArray(payload.rows) ? payload.rows : [];
-            this.rows = mockRows;
+            var normalizedRows = [];
+            for (var i = 0; i < mockRows.length; ++i) {
+              normalizedRows.push(this.normalizeHubCloudRow(mockRows[i]));
+            }
+            this.rows = normalizedRows;
 
             var mockFilters = payload.filters || {};
-            for (var i = 0; i < this.filters.length; ++i) {
-              var key = this.filters[i].key;
+            for (var j = 0; j < this.filters.length; ++j) {
+              var key = this.filters[j].key;
               var list = Array.isArray(mockFilters[key]) ? mockFilters[key] : [];
               this.filterOptions[key] = this.normalizeOptionList(list);
-              if (!this.filterValues[key] && this.filterOptions[key].length > 0) {
-                this.filterValues[key] = this.filterOptions[key][0].value;
-              }
+              this.applyDefaultFilterSelection(this.filters[j]);
               this.onFilterChange(key);
             }
           }.bind(this))

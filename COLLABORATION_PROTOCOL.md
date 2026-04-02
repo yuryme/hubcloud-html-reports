@@ -59,6 +59,63 @@ This protocol defines how we work on HubCloud report updates in this repository.
   - DS placeholder (`&...`) or direct template interpolation,
   - final DSL type (`number` without quotes, `string` with quotes, `datetime` boundary format).
 
+## DS Synchronization Rule (Mandatory)
+- `DS.txt` is the single source of truth for the main datasource query.
+- `script.js` must not contain an alternative or simplified datasource version that diverges from `DS.txt`.
+- `getDatasourceExpression()` must match the current business logic from `DS.txt`.
+- Any datasource logic change must be made in `DS.txt` first, then synchronized into `script.js`.
+- Agent must not reinterpret DSL expressions from `DS.txt` into custom JS-derived equivalents unless the user explicitly approved that transformation.
+
+## DSL Literal Preservation Rule (Mandatory)
+- If a DSL expression already defines its own date/math semantics, preserve it literally.
+- Example: expressions like `&dateStart.EndDay().AddDays(-1)` must not be silently replaced with custom JS-calculated values unless the user explicitly requested that refactor.
+- The agent must prefer literal preservation of datasource DSL over inferred “equivalent” rewrites.
+
+## Parameter Contract Rule (Mandatory)
+- Every datasource placeholder `&...` used in `DS.txt` must have an explicit contract in `script.js`:
+  - UI source field,
+  - runtime variable,
+  - placeholder name,
+  - final DSL type,
+  - example of final substituted value.
+- Required parameter types must be respected:
+  - numbers without quotes,
+  - strings with quotes,
+  - multi-select numeric IDs as comma-separated numeric literals inside DSL call parentheses,
+  - datetime values in the exact format required by the target DSL/runtime.
+- No request may be sent to `/api/v1/datasource/execute/` while any `&...` placeholder remains unresolved.
+
+## Placeholder Replacement Safety Rule (Mandatory)
+- Placeholder replacement must be collision-safe.
+- If placeholder names overlap, longer names must be replaced before shorter names.
+- Example: `dateStartPrevEnd` must be substituted before `dateStart`.
+- Naive replacement that can leave broken tails such as `...00:00:00PrevEnd` is forbidden.
+
+## Multi-Select Filter Rule (Mandatory)
+- Any filter rendered with `multiple` in `index.html` must be initialized in `script.js` with an array value.
+- Default types must match UI control types on first render:
+  - multi-select -> `[]`
+  - single select -> `''`
+- This rule applies to `filterValues`, `filterTitles`, and `filterOptions` where relevant.
+
+## Template Conformance Rule (Mandatory)
+- If a report type has an existing template in `hubcloud-report-factory/templates/...`, new report markup must follow that template structure unless the user explicitly approved a deviation.
+- The agent must not replace template structure with custom page/grid architecture without explicit approval.
+- For stock/turnover reports, prefer the structural pattern from:
+  - `toolbar-layout`
+  - `filter-panel`
+  - `section-card`
+  - `section-body`
+  - `report-table-scroll`
+
+## Delivery Verification Rule (Mandatory)
+- Before handoff, agent must verify and explicitly report:
+  - that `DS.txt` and `getDatasourceExpression()` are synchronized,
+  - that all datasource placeholders are mapped,
+  - that final placeholder substitution produces valid DSL text,
+  - that multi-select filters produce valid DSL parameter syntax,
+  - that markup follows the intended template family.
+
 ## Delivery Note
 Every handoff should explicitly mention:
 - what files were changed,
