@@ -163,6 +163,22 @@
         });
     }
 
+    function loadDefaultConfig() {
+      return fetch("./report.default.json?v=" + cacheKey)
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          return response.json();
+        })
+        .then(function(config) {
+          window.HC_REPORT_DEFAULT_CONFIG = config || null;
+        })
+        .catch(function() {
+          window.HC_REPORT_DEFAULT_CONFIG = null;
+        });
+    }
+
     function loadManifestDatasource() {
       var manifest = window.HC_REPORT_MANIFEST;
       if (!manifest || !manifest.dsFile) {
@@ -195,7 +211,10 @@
       })
       .then(function(html) {
         document.getElementById("sandbox-shell").innerHTML = html.replace(/^<</, "<");
-        return loadManifest()
+        return loadDefaultConfig()
+          .then(function() {
+            return loadManifest();
+          })
           .then(function() {
             return loadManifestDatasource();
           })

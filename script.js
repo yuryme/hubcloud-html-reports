@@ -274,7 +274,7 @@ var HC_REPORT_CORE_API = window.HC_REPORT_CORE || HC_REPORT_FALLBACK_CORE;
 
 var HC_REPORT_MANIFEST = window.HC_REPORT_MANIFEST || null;
 var HC_REPORT_DS_TEXT = window.HC_REPORT_DS_TEXT || null;
-var HC_REPORT_DEFAULT_CONFIG = {
+var HC_REPORT_EMBEDDED_FALLBACK_CONFIG = {
   reportTitle: 'Отчет: Склад Розничный',
   mockDataFile: 'mock-data.json',
   filters: [
@@ -312,37 +312,54 @@ var HC_REPORT_DEFAULT_CONFIG = {
     возврат: ['возврат', 'return_qty'],
     инвентаризация: ['инвентаризация', 'inventory_qty'],
     остаток_на_конец: ['на_конец', 'closing_balance']
-  }
+  },
+  datasourceExpression: [
+    'catalog.номенклатура | Select (id as номенклатура, title as номенклатура_title, группа) | Gettitle() as t1;',
+    '',
+    'движение_ном | склад (&склад) | Period(,&dateStart.EndDay().AddDays(-1)) | GroupBy(номенклатура, колво as на_начало_) as на_начало;',
+    'движение_ном | склад (&склад) | операция (11) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as приход_, операция) | GroupBy (номенклатура, приход_, операция) as приход;',
+    'движение_ном | склад (&склад) | операция (14) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as расход_, операция) | GroupBy (номенклатура, расход_, операция) as расход;',
+    'движение_ном | склад (&склад) | операция (15) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as возврат_, операция) | GroupBy (номенклатура, возврат_, операция) as возврат;',
+    'движение_ном | склад (&склад) | операция (10) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as инвентаризация_, операция) | GroupBy (номенклатура, инвентаризация_, операция) as инвентаризация;',
+    '',
+    'TempTable.на_начало | FullJoinAuto(приход, приход.номенклатура =номенклатура) | FullJoinAuto(расход, расход.номенклатура =номенклатура) | FullJoinAuto(возврат, возврат.номенклатура =номенклатура)',
+    '| FullJoinAuto(инвентаризация, инвентаризация.номенклатура =номенклатура)',
+    '',
+    '| AddColumn (x, number, 0) | Coalesce (приход, приход_, x) | Coalesce (расход__, расход_, x) | Coalesce (на_начало, на_начало_, x) | Coalesce (возврат__, возврат_, x) | Coalesce (инвентаризация, инвентаризация_, x)',
+    '| Compute(расход, расход__ * -1) | Compute(возврат, возврат__ * -1)',
+    '| Compute(на_конец, на_начало + приход - расход - возврат + инвентаризация) | DeleteColumn (на_начало_, приход_, расход_, расход__, возврат_, возврат__, инвентаризация_, x)',
+    '| LeftJoinAuto(t1, t1.номенклатура =номенклатура) | группа (&группа)',
+    '| Compute(x, на_начало*на_начало+приход*приход+расход*расход+на_конец*на_конец+возврат*возврат+инвентаризация*инвентаризация) | Having (x>0) | OrderBy (номенклатура_title)'
+  ].join('\n')
 };
-var HC_REPORT_CONFIG = {
-  reportTitle: (HC_REPORT_MANIFEST && HC_REPORT_MANIFEST.reportTitle) || HC_REPORT_DEFAULT_CONFIG.reportTitle,
-  mockDataFile: (HC_REPORT_MANIFEST && HC_REPORT_MANIFEST.mockDataFile) || HC_REPORT_DEFAULT_CONFIG.mockDataFile,
-  filters: (HC_REPORT_MANIFEST && Array.isArray(HC_REPORT_MANIFEST.filters) && HC_REPORT_MANIFEST.filters.length > 0)
-    ? HC_REPORT_MANIFEST.filters
-    : HC_REPORT_DEFAULT_CONFIG.filters,
-  columns: (HC_REPORT_MANIFEST && Array.isArray(HC_REPORT_MANIFEST.columns) && HC_REPORT_MANIFEST.columns.length > 0)
-    ? HC_REPORT_MANIFEST.columns
-    : HC_REPORT_DEFAULT_CONFIG.columns,
-  rowMap: (HC_REPORT_MANIFEST && HC_REPORT_MANIFEST.rowMap) || HC_REPORT_DEFAULT_CONFIG.rowMap
-};
-var HC_REPORT_DEFAULT_DATASOURCE_EXPRESSION = [
-  'catalog.номенклатура | Select (id as номенклатура, title as номенклатура_title, группа) | Gettitle() as t1;',
-  '',
-  'движение_ном | склад (&склад) | Period(,&dateStart.EndDay().AddDays(-1)) | GroupBy(номенклатура, колво as на_начало_) as на_начало;',
-  'движение_ном | склад (&склад) | операция (11) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as приход_, операция) | GroupBy (номенклатура, приход_, операция) as приход;',
-  'движение_ном | склад (&склад) | операция (14) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as расход_, операция) | GroupBy (номенклатура, расход_, операция) as расход;',
-  'движение_ном | склад (&склад) | операция (15) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as возврат_, операция) | GroupBy (номенклатура, возврат_, операция) as возврат;',
-  'движение_ном | склад (&склад) | операция (10) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as инвентаризация_, операция) | GroupBy (номенклатура, инвентаризация_, операция) as инвентаризация;',
-  '',
-  'TempTable.на_начало | FullJoinAuto(приход, приход.номенклатура =номенклатура) | FullJoinAuto(расход, расход.номенклатура =номенклатура) | FullJoinAuto(возврат, возврат.номенклатура =номенклатура)',
-  '| FullJoinAuto(инвентаризация, инвентаризация.номенклатура =номенклатура)',
-  '',
-  '| AddColumn (x, number, 0) | Coalesce (приход, приход_, x) | Coalesce (расход__, расход_, x) | Coalesce (на_начало, на_начало_, x) | Coalesce (возврат__, возврат_, x) | Coalesce (инвентаризация, инвентаризация_, x)',
-  '| Compute(расход, расход__ * -1) | Compute(возврат, возврат__ * -1)',
-  '| Compute(на_конец, на_начало + приход - расход - возврат + инвентаризация) | DeleteColumn (на_начало_, приход_, расход_, расход__, возврат_, возврат__, инвентаризация_, x)',
-  '| LeftJoinAuto(t1, t1.номенклатура =номенклатура) | группа (&группа)',
-  '| Compute(x, на_начало*на_начало+приход*приход+расход*расход+на_конец*на_конец+возврат*возврат+инвентаризация*инвентаризация) | Having (x>0) | OrderBy (номенклатура_title)'
-].join('\n');
+
+function buildMergedReportConfig(baseConfig, overrideConfig) {
+  var base = baseConfig || {};
+  var override = overrideConfig || {};
+  return {
+    reportTitle: override.reportTitle || base.reportTitle || '',
+    mockDataFile: override.mockDataFile || base.mockDataFile || 'mock-data.json',
+    filters: Array.isArray(override.filters) && override.filters.length > 0
+      ? override.filters
+      : (Array.isArray(base.filters) ? base.filters : []),
+    columns: Array.isArray(override.columns) && override.columns.length > 0
+      ? override.columns
+      : (Array.isArray(base.columns) ? base.columns : []),
+    rowMap: override.rowMap || base.rowMap || {},
+    datasourceExpression: override.datasourceExpression || base.datasourceExpression || ''
+  };
+}
+
+var HC_REPORT_DEFAULT_CONFIG = buildMergedReportConfig(
+  HC_REPORT_EMBEDDED_FALLBACK_CONFIG,
+  window.HC_REPORT_DEFAULT_CONFIG || null
+);
+var HC_REPORT_CONFIG = buildMergedReportConfig(HC_REPORT_DEFAULT_CONFIG, HC_REPORT_MANIFEST);
+
+function buildReportAssetUrl(fileName) {
+  return './' + String(fileName || '');
+}
+
 function buildInitialFilterValues(filters) {
   var state = {};
   for (var i = 0; i < filters.length; ++i) {
@@ -375,7 +392,7 @@ var vueApp = new Vue({
     buildVersion: CORE_BUILD,
     isWaiting: false,
     dataSourceMode: 'hubcloud',
-    mockDataUrl: './' + HC_REPORT_CONFIG.mockDataFile,
+    mockDataUrl: buildReportAssetUrl(HC_REPORT_CONFIG.mockDataFile),
 
     period_from: new Date().toLocaleDateString('en-CA'),
     period_to: new Date().toLocaleDateString('en-CA'),
@@ -575,7 +592,7 @@ var vueApp = new Vue({
       if (HC_REPORT_DS_TEXT && String(HC_REPORT_DS_TEXT).trim()) {
         return String(HC_REPORT_DS_TEXT).trim();
       }
-      return HC_REPORT_DEFAULT_DATASOURCE_EXPRESSION;
+      return HC_REPORT_CONFIG.datasourceExpression || '';
     },
 
     // Report row normalization
@@ -592,9 +609,6 @@ var vueApp = new Vue({
     getRowMapKeys: function(fieldName, fallbackKeys) {
       if (HC_REPORT_CONFIG.rowMap && Array.isArray(HC_REPORT_CONFIG.rowMap[fieldName])) {
         return HC_REPORT_CONFIG.rowMap[fieldName];
-      }
-      if (HC_REPORT_DEFAULT_CONFIG.rowMap && Array.isArray(HC_REPORT_DEFAULT_CONFIG.rowMap[fieldName])) {
-        return HC_REPORT_DEFAULT_CONFIG.rowMap[fieldName];
       }
       return fallbackKeys || [];
     },
