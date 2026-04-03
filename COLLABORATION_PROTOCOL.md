@@ -11,6 +11,7 @@ This protocol defines how we work on HubCloud report updates in this repository.
 - If the mode is not explicit, agent must ask the user which path is intended before proposing file edits.
 - Agent must not silently assume a creation workflow when the task may instead be modernization of an existing report.
 - If the task is `Skeleton Build Mode` and the goal is to produce a new report package, agent must follow `REPORT_FACTORY_WORKFLOW.md`.
+- If the task is `Modernization Mode`, agent must treat the imported `index.html`, `hc-report.css`, and `script.js` as the primary source of truth for the report behavior unless the user explicitly says datasource logic must also be updated from `DS.txt`.
 
 ## File Responsibilities (Global, Mandatory)
 - `index.html` -> `HTML` markup and structure for HubCloud
@@ -21,6 +22,20 @@ This protocol defines how we work on HubCloud report updates in this repository.
 - `DS.txt` -> single source of truth for the main datasource query
 - `DS_FILTERS.txt` -> single source of truth for filter datasource queries
 - Agent must not move responsibilities between these files unless the user explicitly approves that change.
+
+## Modernization Scope Rule (Mandatory)
+- In `Modernization Mode`, agent must not automatically include root `DS.txt` in the change scope.
+- By default, modernization scope is:
+  - `index.html`
+  - `hc-report.css`
+  - `script.js`
+  - `mock-data.json` when sandbox data must be adapted to the imported report contract.
+- Root `DS.txt` becomes active modernization scope only if the user explicitly instructs that datasource logic from that file must be synchronized into the imported report.
+
+## Mock Contract Rule For Modernization (Mandatory)
+- After the user imports an existing report into root `index.html`, `hc-report.css`, and `script.js`, agent must verify that current `mock-data.json` matches the runtime contract expected by that imported report.
+- If sandbox is empty because `mock-data.json` belongs to a different report, agent must rebuild `mock-data.json` before starting deeper modernization work.
+- Agent must treat this as a standard readiness step for `Modernization Mode`, not as an optional cleanup.
 
 ## Change Approval Policy (Global, Mandatory)
 - Before any file changes, agent must first describe planned edits: what files, what will change, and why.

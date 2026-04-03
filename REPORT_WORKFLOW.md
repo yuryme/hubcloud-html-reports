@@ -67,6 +67,11 @@ For Modernization Mode:
 - identify report-specific and generic parts,
 - establish a stable baseline before changes.
 
+Mandatory early check in Modernization Mode:
+- verify that current `index.html` and `script.js` still match each other,
+- verify that current `mock-data.json` matches the runtime/data contract expected by the imported `script.js`,
+- if `mock-data.json` does not match, rebuild `mock-data.json` before starting actual modernization work.
+
 Output:
 - working `index.html`,
 - working `hc-report.css`,
@@ -191,6 +196,20 @@ Later, source of truth becomes:
 At early stage, source of truth is:
 - imported working files,
 - current behavior of the existing report.
+
+Default rule for datasource in Modernization Mode:
+- root `DS.txt` is **not** automatically part of the modernization scope,
+- agent must not assume datasource changes are required just because `DS.txt` exists in the repository,
+- by default, modernization concerns:
+  - `index.html`,
+  - `hc-report.css`,
+  - `script.js`,
+  - and, when needed, `mock-data.json`.
+
+Exception:
+- if the user explicitly says that the current report must use or update datasource logic from root `DS.txt`,
+- then `DS.txt` becomes an active source for that task,
+- and agent must explicitly state that datasource synchronization is part of the modernization scope.
 
 Later, source of truth becomes:
 - cleaned project files,
