@@ -10,6 +10,7 @@ Read these files in this exact order:
 
 Read additional documents only when needed:
 - `REPORT_WORKFLOW.md` for lifecycle, process, or architecture questions
+- `REPORT_FACTORY_WORKFLOW.md` when producing a new report in `Skeleton Build Mode`
 - `LOCAL_DEV.md` for local sandbox work
 - `HUBCLOUD_COMPAT.md` for HubCloud compatibility or transfer issues
 

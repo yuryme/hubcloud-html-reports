@@ -10,6 +10,7 @@ This protocol defines how we work on HubCloud report updates in this repository.
   - `Modernization Mode`
 - If the mode is not explicit, agent must ask the user which path is intended before proposing file edits.
 - Agent must not silently assume a creation workflow when the task may instead be modernization of an existing report.
+- If the task is `Skeleton Build Mode` and the goal is to produce a new report package, agent must follow `REPORT_FACTORY_WORKFLOW.md`.
 
 ## File Responsibilities (Global, Mandatory)
 - `index.html` -> `HTML` markup and structure for HubCloud
@@ -142,4 +143,5 @@ Every handoff should explicitly mention:
 
 ## Reference Documents
 - `REPORT_WORKFLOW.md` is a reference document for lifecycle and process questions.
+- `REPORT_FACTORY_WORKFLOW.md` is the operational workflow for producing a new report package in `Skeleton Build Mode`.
 - `LOCAL_DEV.md` and `HUBCLOUD_COMPAT.md` are situational references, not mandatory start reading for every task.
