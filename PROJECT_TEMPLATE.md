@@ -17,6 +17,21 @@ This repository now acts as a reusable technical template for:
 - `sandbox.html`: local harness for parity testing.
 - `mock-data.json`: local data source for fast iteration.
 
+## Wide Table Layout Rule
+- For wide matrix or pivot reports, do not reduce visual width through `scale`, `zoom`, or similar transform tricks as the primary solution.
+- First build page layout through normal containers and columns:
+  - page container with controlled max width,
+  - left content column for the table area,
+  - right column for filters/settings.
+- The table must live inside the left content column, and page width must be controlled by layout before aggressive table compression is attempted.
+- Only after container/column layout is correct may the agent tune:
+  - sticky first column width,
+  - data column widths,
+  - font size,
+  - cell padding,
+  - header wrapping.
+- Prefer real layout control over visual scaling.
+
 ## Technology Of Changes (Standard Process)
 1. Implement changes locally in the canonical files.
 2. Run checks:

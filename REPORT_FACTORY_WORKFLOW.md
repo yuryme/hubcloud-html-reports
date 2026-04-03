@@ -103,6 +103,13 @@ Allowed changes:
 - filter panel layout,
 - visual alignment to image or description.
 
+Special rule for wide matrix/pivot reports:
+- do not start by shrinking the table with `scale`, `zoom`, or similar visual transforms;
+- first define page layout with a controlled container and explicit columns:
+  - left table/content area,
+  - right filter/settings area;
+- only after the page grid is correct may the agent compress the table itself through widths, typography, and wrapping.
+
 ### 3. report.manifest.json
 Create as the report-specific configuration.
 
