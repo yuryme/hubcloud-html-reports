@@ -5,23 +5,29 @@
       { "id": "1", "title": "Склад маг р-к Танеева" },
       { "id": "2", "title": "Склад маг Остужева" },
       { "id": "3", "title": "Склад маг Лизюкова" }
+    ],
+    "группа": [
+      { "id": "10", "title": "Хлеб" },
+      { "id": "20", "title": "Булочки" },
+      { "id": "30", "title": "Десерты" },
+      { "id": "40", "title": "Сезонные позиции" }
     ]
   },
   "rows": [
-    { "item_name": "Багет Кураж (с коноплей)", "opening_balance": -5.0, "incoming": 3.0, "outgoing": 1.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -3.0 },
-    { "item_name": "Багет Марриб (мультизерновой на камне)", "opening_balance": -27.0, "incoming": 2.0, "outgoing": 4.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -29.0 },
-    { "item_name": "Багет Марсель (на камне)", "opening_balance": -24.0, "incoming": 2.0, "outgoing": 7.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -29.0 },
-    { "item_name": "Багет Чернавский", "opening_balance": -7.0, "incoming": 3.0, "outgoing": 4.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -8.0 },
-    { "item_name": "Батон нарезной (400 г)", "opening_balance": -15.0, "incoming": 8.0, "outgoing": 7.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -14.0 },
-    { "item_name": "Батон нарезной (400 г) нарезка", "opening_balance": -2.0, "incoming": 4.0, "outgoing": 6.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -4.0 },
-    { "item_name": "Батон с изюмом (300 г)", "opening_balance": -14.0, "incoming": 7.0, "outgoing": 6.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -13.0 },
-    { "item_name": "Батон с маком (300 г)", "opening_balance": -7.0, "incoming": 1.0, "outgoing": 2.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -8.0 },
-    { "item_name": "Батон столовый (багет) 300 г", "opening_balance": -15.0, "incoming": 5.0, "outgoing": 12.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -22.0 },
-    { "item_name": "Батон Студенческий (300 г)", "opening_balance": -10.0, "incoming": 2.0, "outgoing": 3.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -11.0 },
-    { "item_name": "Батончик сдобный к чаю (300 г)", "opening_balance": -20.0, "incoming": 10.0, "outgoing": 5.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -15.0 },
-    { "item_name": "Безе Купола", "opening_balance": 0.0, "incoming": 0.0, "outgoing": 1.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -1.0 },
-    { "item_name": "Бриошь", "opening_balance": -0.210, "incoming": 0.680, "outgoing": 0.240, "return_qty": 0, "inventory_qty": 0, "closing_balance": 0.230 },
-    { "item_name": "Бриошь (с шоколадными каплями)", "opening_balance": 1.298, "incoming": 0.0, "outgoing": 0.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": 1.298 },
-    { "item_name": "Булка городская (200 г)", "opening_balance": -19.0, "incoming": 8.0, "outgoing": 9.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -20.0 }
+    { "item_name": "Багет Кураж (с коноплей)", "склад": "1", "группа": "10", "opening_balance": -5.0, "incoming": 3.0, "outgoing": 1.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -3.0 },
+    { "item_name": "Багет Марриб (мультизерновой на камне)", "склад": "1", "группа": "10", "opening_balance": -27.0, "incoming": 2.0, "outgoing": 4.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -29.0 },
+    { "item_name": "Багет Марсель (на камне)", "склад": "1", "группа": "10", "opening_balance": -24.0, "incoming": 2.0, "outgoing": 7.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -29.0 },
+    { "item_name": "Багет Чернавский", "склад": "2", "группа": "10", "opening_balance": -7.0, "incoming": 3.0, "outgoing": 4.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -8.0 },
+    { "item_name": "Батон нарезной (400 г)", "склад": "2", "группа": "10", "opening_balance": -15.0, "incoming": 8.0, "outgoing": 7.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -14.0 },
+    { "item_name": "Батон нарезной (400 г) нарезка", "склад": "3", "группа": "20", "opening_balance": -2.0, "incoming": 4.0, "outgoing": 6.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -4.0 },
+    { "item_name": "Батон с изюмом (300 г)", "склад": "3", "группа": "20", "opening_balance": -14.0, "incoming": 7.0, "outgoing": 6.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -13.0 },
+    { "item_name": "Батон с маком (300 г)", "склад": "1", "группа": "20", "opening_balance": -7.0, "incoming": 1.0, "outgoing": 2.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -8.0 },
+    { "item_name": "Батон столовый (багет) 300 г", "склад": "2", "группа": "20", "opening_balance": -15.0, "incoming": 5.0, "outgoing": 12.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -22.0 },
+    { "item_name": "Батон Студенческий (300 г)", "склад": "2", "группа": "20", "opening_balance": -10.0, "incoming": 2.0, "outgoing": 3.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -11.0 },
+    { "item_name": "Батончик сдобный к чаю (300 г)", "склад": "3", "группа": "20", "opening_balance": -20.0, "incoming": 10.0, "outgoing": 5.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -15.0 },
+    { "item_name": "Безе Купола", "склад": "1", "группа": "30", "opening_balance": 0.0, "incoming": 0.0, "outgoing": 1.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -1.0 },
+    { "item_name": "Бриошь", "склад": "2", "группа": "30", "opening_balance": -0.210, "incoming": 0.680, "outgoing": 0.240, "return_qty": 0, "inventory_qty": 0, "closing_balance": 0.230 },
+    { "item_name": "Бриошь (с шоколадными каплями)", "склад": "3", "группа": "30", "opening_balance": 1.298, "incoming": 0.0, "outgoing": 0.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": 1.298 },
+    { "item_name": "Булка городская (200 г)", "склад": "1", "группа": "40", "opening_balance": -19.0, "incoming": 8.0, "outgoing": 9.0, "return_qty": 0, "inventory_qty": 0, "closing_balance": -20.0 }
   ]
 }

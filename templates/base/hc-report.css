@@ -1,0 +1,138 @@
+:root {
+  --factory-bg: #e8edf3;
+  --factory-surface: #f7f9fc;
+  --factory-card: #ffffff;
+  --factory-border: #cfd7e4;
+  --factory-text: #1b2a40;
+  --factory-muted: #5d6c82;
+  --factory-accent: #355b86;
+}
+
+#root {
+  padding: 18px;
+  background: var(--factory-bg);
+  min-height: 100vh;
+  color: var(--factory-text);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.report-page {
+  max-width: 1160px;
+  margin: 0 auto;
+}
+
+.hero-band {
+  border-radius: 14px;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, #2c4a70 0%, var(--factory-accent) 100%);
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: 37px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.toolbar-card,
+.kpi-card,
+.section-card {
+  border: 1px solid var(--factory-border);
+  border-radius: 12px;
+  background: var(--factory-card);
+}
+
+.toolbar-card {
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.toolbar-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.toolbar-cell {
+  min-width: 180px;
+}
+
+.toolbar-label {
+  display: block;
+  font-size: 10px;
+  color: var(--factory-muted);
+  margin-bottom: 4px;
+}
+
+.kpi-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  margin-bottom: 12px;
+}
+
+.kpi-card {
+  padding: 10px 12px;
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.kpi-label {
+  font-size: 9px;
+  color: #4d607a;
+  text-transform: uppercase;
+}
+
+.kpi-value {
+  font-size: 35px;
+  font-weight: 700;
+  color: #1e3859;
+}
+
+.period-note {
+  margin: 6px 0 12px;
+  color: #2f4868;
+  font-size: 13px;
+}
+
+.section-card {
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.section-head {
+  border-bottom: 1px solid var(--factory-border);
+  padding: 10px 14px;
+  background: #eef3f9;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: #183556;
+}
+
+.section-body {
+  padding: 8px;
+}
+
+.report-table thead th {
+  background: #e7edf6;
+  color: #243f61;
+  border-color: #d2dbe9 !important;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.report-table td {
+  border-color: #d8e0ec !important;
+  color: #22364f;
+  font-size: 19px;
+}

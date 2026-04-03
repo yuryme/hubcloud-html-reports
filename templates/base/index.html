@@ -1,0 +1,58 @@
+<div id="root" class="bt-header bt-list">
+  <div class="report-page">
+    <section class="hero-band">
+      <h2 class="hero-title">
+        <span v-text="reportTitle"></span>
+      </h2>
+    </section>
+
+    <section class="toolbar-card">
+      <div class="toolbar-grid">
+        <div class="toolbar-cell">
+          <label class="toolbar-label">Period from</label>
+          <input type="date" class="form-control" v-model="period_from">
+        </div>
+        <div class="toolbar-cell">
+          <label class="toolbar-label">Period to</label>
+          <input type="date" class="form-control" v-model="period_to">
+        </div>
+        <div>
+          <button class="btn btn-primary" v-on:click="loadReport">Build report</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="kpi-row">
+      <div class="kpi-card" v-for="card in summaryCards" :key="card.label">
+        <div class="kpi-label" v-text="card.label"></div>
+        <div class="kpi-value" v-text="card.value"></div>
+      </div>
+    </section>
+
+    <div class="period-note" v-text="periodLabel"></div>
+
+    <div class="print-area bt-list-body">
+      <div id="table-container">
+        <div class="section-card" v-for="section in sections" :key="section.title">
+          <div class="section-head">
+            <h3 class="section-title" v-text="section.title"></h3>
+          </div>
+          <div class="section-body">
+            <table class="table table-sm report-table">
+              <thead>
+                <tr>
+                  <th v-for="column in section.columns" :key="column.key" v-text="column.label"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, rowIndex) in section.rows" :key="section.title + '-' + rowIndex">
+                  <td v-for="column in section.columns" :key="column.key" v-text="formatCell(row[column.key])"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

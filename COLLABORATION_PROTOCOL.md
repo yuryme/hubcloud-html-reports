@@ -3,6 +3,24 @@
 ## Scope
 This protocol defines how we work on HubCloud report updates in this repository.
 
+## Workflow Mode Selection (Global, Mandatory)
+- At the start of a report task, agent must identify the workflow mode.
+- Supported entry modes:
+  - `Skeleton Build Mode`
+  - `Modernization Mode`
+- If the mode is not explicit, agent must ask the user which path is intended before proposing file edits.
+- Agent must not silently assume a creation workflow when the task may instead be modernization of an existing report.
+
+## File Responsibilities (Global, Mandatory)
+- `index.html` -> `HTML` markup and structure for HubCloud
+- `hc-report.css` -> `Styles` content for HubCloud
+- `script.js` -> `Scripts` logic, parameterization, and datasource wiring for HubCloud
+- `sandbox.html` -> local harness only
+- `mock-data.json` -> local mock data only
+- `DS.txt` -> single source of truth for the main datasource query
+- `DS_FILTERS.txt` -> single source of truth for filter datasource queries
+- Agent must not move responsibilities between these files unless the user explicitly approves that change.
+
 ## Change Approval Policy (Global, Mandatory)
 - Before any file changes, agent must first describe planned edits: what files, what will change, and why.
 - Agent must receive explicit user approval (`да`, `подтверждаю`, `ok to proceed`) before editing files.
@@ -121,3 +139,7 @@ Every handoff should explicitly mention:
 - what files were changed,
 - whether commit was made or not made,
 - exact files to copy into HubCloud tabs.
+
+## Reference Documents
+- `REPORT_WORKFLOW.md` is a reference document for lifecycle and process questions.
+- `LOCAL_DEV.md` and `HUBCLOUD_COMPAT.md` are situational references, not mandatory start reading for every task.

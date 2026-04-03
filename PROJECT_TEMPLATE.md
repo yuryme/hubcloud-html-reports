@@ -1,19 +1,14 @@
-# HubCloud Report Project Template
+﻿# HubCloud Report Project Template
 
 ## Purpose
-This repository now acts as a reusable template for:
+This repository now acts as a reusable technical template for:
 - report visual style,
 - safe HubCloud-compatible implementation patterns,
-- standardized change workflow.
+- standardized local validation and transfer workflow.
 
 ## Mandatory Governance
 - Before changing report datasource logic, parameter mapping, or template structure, read `COLLABORATION_PROTOCOL.md`.
-- `COLLABORATION_PROTOCOL.md` contains mandatory rules for:
-  - `DS.txt` <-> `script.js` synchronization,
-  - datasource placeholder replacement,
-  - multi-select filter typing,
-  - template conformance,
-  - delivery verification before transfer to HubCloud.
+- `COLLABORATION_PROTOCOL.md` contains the mandatory working rules for synchronization, parameterization, validation, and transfer.
 
 ## Canonical File Roles
 - `index.html`: markup for HubCloud `HTML` tab.
@@ -43,7 +38,6 @@ This creates a ready-to-copy template package in:
 
 Package includes:
 - canonical HC files,
-- workflow docs,
 - compatibility docs,
 - transfer manifest.
 
