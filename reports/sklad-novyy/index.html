@@ -1,0 +1,100 @@
+<div id="root" class="bt-header bt-list">
+  <div class="report-page">
+    <section class="hero-band">
+      <div class="hero-head">
+        <h2 class="hero-title">
+          <span v-text="reportTitle"></span>
+        </h2>
+        <button class="btn btn-default settings-btn" type="button">Настройки</button>
+      </div>
+    </section>
+
+    <section class="toolbar-card">
+      <div class="toolbar-layout">
+        <div class="toolbar-grid">
+          <div class="toolbar-actions">
+            <button class="btn btn-primary" v-on:click="loadReport">Отчет</button>
+            <button class="btn btn-success" v-on:click="exportToExcel">Excel</button>
+            <button class="btn btn-default" v-on:click="printReport">Печать</button>
+          </div>
+
+          <div class="period-cluster">
+            <button type="button" class="period-nav-btn" v-on:click="shiftPeriod(-1)">&#x2039;</button>
+            <div class="toolbar-cell">
+              <label class="toolbar-label">Дата</label>
+              <input type="date" class="form-control" v-model="period_from">
+            </div>
+            <button type="button" class="period-nav-btn" v-on:click="shiftPeriod(1)">&#x203A;</button>
+          </div>
+        </div>
+
+        <div class="filter-panel">
+          <div class="filter-grid">
+            <div class="toolbar-cell filter-cell" v-for="flt in filters" :key="flt.key">
+              <label class="toolbar-label" v-text="flt.title"></label>
+              <select
+                class="form-control filter-select"
+                :multiple="!!flt.multiple"
+                v-model="filterValues[flt.key]"
+                v-on:change="onFilterChange(flt.key)"
+              >
+                <option
+                  v-for="opt in filterOptions[flt.key] || []"
+                  :key="flt.key + '-' + opt.value"
+                  :value="opt.value"
+                  v-text="opt.title"
+                ></option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="print-area bt-list-body">
+      <div id="table-container">
+        <div class="section-card">
+          <div class="section-body">
+            <div class="report-table-scroll">
+              <table class="table table-sm report-table">
+                <colgroup>
+                  <col class="report-col-rownum">
+                  <col class="report-col-name">
+                  <col class="report-col-num">
+                  <col class="report-col-num">
+                  <col class="report-col-num">
+                  <col class="report-col-num">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th class="report-rownum-head">#</th>
+                    <th
+                      v-for="col in columns"
+                      :key="'h-' + col.key"
+                      :class="col.alignClass || ''"
+                      v-text="col.label">
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="rows.length === 0 && !isWaiting">
+                    <td :colspan="columns.length + 1" class="report-empty">Нет данных</td>
+                  </tr>
+                  <tr v-for="(row, idx) in rows" :key="'r-' + idx">
+                    <td class="report-rownum" v-text="idx + 1"></td>
+                    <td
+                      v-for="col in columns"
+                      :key="'c-' + idx + '-' + col.key"
+                      :class="cellClass(col, row[col.key])"
+                      v-text="formatCell(col, row[col.key])">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

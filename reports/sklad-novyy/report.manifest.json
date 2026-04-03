@@ -1,0 +1,39 @@
+{
+  "reportId": "sklad-novyy",
+  "reportTitle": "Отчет: Склад НОВЫЙ",
+  "dsFile": "DS.txt",
+  "mockDataFile": "mock-data.json",
+  "templateHint": "base",
+  "filters": [
+    {
+      "key": "склад",
+      "dsKey": "склад",
+      "title": "Склад*",
+      "multiple": false,
+      "aliases": ["склад", "warehouse", "$склад", "$warehouse"],
+      "optionsExpression": "catalog.склад | Select(id, title)"
+    },
+    {
+      "key": "группа",
+      "dsKey": "группа",
+      "title": "Номенклатурная группа",
+      "multiple": false,
+      "aliases": ["группа", "group", "$группа", "$group"],
+      "optionsExpression": "catalog.группа | Select (id,title)"
+    }
+  ],
+  "columns": [
+    { "key": "номенклатура", "label": "Номенклатура", "type": "text", "alignClass": "text-left" },
+    { "key": "остаток_на_начало", "label": "Остаток на начало", "type": "number", "alignClass": "text-right" },
+    { "key": "приход", "label": "Приход", "type": "number", "alignClass": "text-right" },
+    { "key": "расход", "label": "Расход", "type": "number", "alignClass": "text-right" },
+    { "key": "остаток_на_конец", "label": "Остаток на конец", "type": "number", "alignClass": "text-right" }
+  ],
+  "rowMap": {
+    "номенклатура": ["номенклатура_title", "item_name", "name"],
+    "остаток_на_начало": ["на_начало", "opening_balance"],
+    "приход": ["приход", "incoming"],
+    "расход": ["расход", "outgoing"],
+    "остаток_на_конец": ["на_конец", "closing_balance"]
+  }
+}

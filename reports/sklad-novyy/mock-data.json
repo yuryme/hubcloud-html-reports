@@ -1,0 +1,29 @@
+{
+  "isOK": true,
+  "filters": {
+    "склад": [
+      { "id": "9", "title": "Склад маг Заводская" },
+      { "id": "10", "title": "Склад маг Танеева" },
+      { "id": "11", "title": "Склад маг Остужева" }
+    ],
+    "группа": [
+      { "id": "10", "title": "Хлеб" },
+      { "id": "20", "title": "Булочки" },
+      { "id": "30", "title": "Десерты" }
+    ]
+  },
+  "rows": [
+    { "item_name": "Багет Кураж (с коноплей)", "склад": "9", "группа": "10", "opening_balance": 11.000, "incoming": 5.000, "outgoing": 2.000, "closing_balance": 14.000 },
+    { "item_name": "Багет Марриб (мультизерновой на камне)", "склад": "9", "группа": "10", "opening_balance": -1.000, "incoming": 4.000, "outgoing": 4.000, "closing_balance": -1.000 },
+    { "item_name": "Багет Марсель (на камне)", "склад": "9", "группа": "10", "opening_balance": 4.000, "incoming": 4.000, "outgoing": 3.000, "closing_balance": 5.000 },
+    { "item_name": "Багет Чернавский", "склад": "9", "группа": "10", "opening_balance": 3.000, "incoming": 5.000, "outgoing": 5.000, "closing_balance": 3.000 },
+    { "item_name": "Батон нарезной (400 г)", "склад": "9", "группа": "10", "opening_balance": 2.000, "incoming": 8.000, "outgoing": 8.000, "closing_balance": 2.000 },
+    { "item_name": "Батон нарезной (400 г) нарезка", "склад": "9", "группа": "10", "opening_balance": -4.000, "incoming": 4.000, "outgoing": 4.000, "closing_balance": -4.000 },
+    { "item_name": "Батон с изюмом (300 г)", "склад": "9", "группа": "10", "opening_balance": 3.000, "incoming": 10.000, "outgoing": 7.000, "closing_balance": 6.000 },
+    { "item_name": "Батон с маком (300 г)", "склад": "9", "группа": "10", "opening_balance": 1.000, "incoming": 4.000, "outgoing": 4.000, "closing_balance": 1.000 },
+    { "item_name": "Батон столовый (багет) 300 г", "склад": "9", "группа": "10", "opening_balance": 0.000, "incoming": 5.000, "outgoing": 5.000, "closing_balance": 0.000 },
+    { "item_name": "Батон Студенческий (300 г)", "склад": "9", "группа": "10", "opening_balance": -3.000, "incoming": 4.000, "outgoing": 2.000, "closing_balance": -1.000 },
+    { "item_name": "Булка городская (200 г)", "склад": "10", "группа": "20", "opening_balance": 7.000, "incoming": 2.000, "outgoing": 1.000, "closing_balance": 8.000 },
+    { "item_name": "Бриошь", "склад": "11", "группа": "30", "opening_balance": 1.200, "incoming": 0.700, "outgoing": 0.600, "closing_balance": 1.300 }
+  ]
+}

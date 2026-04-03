@@ -1,0 +1,37 @@
+{
+  "reportTitle": "Отчет: Склад НОВЫЙ",
+  "mockDataFile": "mock-data.json",
+  "filters": [
+    {
+      "key": "склад",
+      "dsKey": "склад",
+      "title": "Склад*",
+      "multiple": false,
+      "aliases": ["склад", "warehouse", "$склад", "$warehouse"],
+      "optionsExpression": "catalog.склад | Select(id, title)"
+    },
+    {
+      "key": "группа",
+      "dsKey": "группа",
+      "title": "Номенклатурная группа",
+      "multiple": false,
+      "aliases": ["группа", "group", "$группа", "$group"],
+      "optionsExpression": "catalog.группа | Select (id,title)"
+    }
+  ],
+  "columns": [
+    { "key": "номенклатура", "label": "Номенклатура", "type": "text", "alignClass": "text-left" },
+    { "key": "остаток_на_начало", "label": "Остаток на начало", "type": "number", "alignClass": "text-right" },
+    { "key": "приход", "label": "Приход", "type": "number", "alignClass": "text-right" },
+    { "key": "расход", "label": "Расход", "type": "number", "alignClass": "text-right" },
+    { "key": "остаток_на_конец", "label": "Остаток на конец", "type": "number", "alignClass": "text-right" }
+  ],
+  "rowMap": {
+    "номенклатура": ["номенклатура_title", "item_name", "name"],
+    "остаток_на_начало": ["на_начало", "opening_balance"],
+    "приход": ["приход", "incoming"],
+    "расход": ["расход", "outgoing"],
+    "остаток_на_конец": ["на_конец", "closing_balance"]
+  },
+  "datasourceExpression": "catalog.номенклатура | Select (id as номенклатура, title as номенклатура_title, группа) | Gettitle() as t1;\n\nдвижение_ном  | склад (&склад) | Period(  , &dateStart.EndDay().AddDays(-1))  | GroupBy (номенклатура, колво as на_начало_)  as на_начало;\nдвижение_ном | склад (&склад)  | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as приход_)  | Having(приход_ > 0) | GroupBy (номенклатура, приход_) as приход;\nдвижение_ном | склад (&склад)  | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as расход_)  | Having(расход_< 0) | GroupBy (номенклатура, расход_)  as расход;\nдвижение_ном | склад (&склад)  | Period(, &dateFinish) | Select (номенклатура, колво as на_конец)  | GroupBy (номенклатура, на_конец)  as на_конец;\n\nTempTable.на_начало | FullJoinAuto(приход, приход.номенклатура =номенклатура) |  FullJoinAuto(расход, расход.номенклатура =номенклатура) |  FullJoinAuto(на_конец, на_конец.номенклатура =номенклатура)\n\n| AddColumn (x, number, 0) | Coalesce (приход, приход_, x) | Coalesce (расход__, расход_, x)  | Coalesce (на_начало, на_начало_, x)\n|  Compute(расход, расход__ * -1)\n| DeleteColumn (на_начало_, приход_, расход_, расход__, x)\n|  LeftJoinAuto(t1, t1.номенклатура =номенклатура) | группа (&группа) | OrderBy (номенклатура_title) \n| Compute(x, на_начало*на_начало+приход*приход+расход*расход+на_конец*на_конец) | Having (x>0) | OrderBy (номенклатура_title)"
+}
