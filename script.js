@@ -1,5 +1,270 @@
 ﻿var CORE_BUILD = 'core-baseline-2026-04-03.1';
 var HC_DEBUG = false;
+var HC_REPORT_FALLBACK_CORE = {
+  getQueryParameters: function(search, externalParameters) {
+    var queryParameters = {};
+    if (externalParameters && typeof externalParameters === 'object') {
+      queryParameters = Object.assign({}, externalParameters);
+    }
+    var urlParams = new URLSearchParams(search || '');
+    urlParams.forEach(function(value, key) {
+      queryParameters[key] = value;
+    });
+    return queryParameters;
+  },
+
+  getFirstDefinedValue: function(source, aliases) {
+    for (var i = 0; i < aliases.length; ++i) {
+      var key = aliases[i];
+      if (
+        Object.prototype.hasOwnProperty.call(source, key) &&
+        source[key] !== null &&
+        typeof source[key] !== 'undefined' &&
+        source[key] !== ''
+      ) {
+        return source[key];
+      }
+    }
+    return null;
+  },
+
+  normalizeSingleParameter: function(value) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      var rawValue = value.id;
+      if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
+        rawValue = value.value;
+      }
+      if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
+        rawValue = value.code;
+      }
+      if (typeof rawValue === 'undefined' || rawValue === null) {
+        rawValue = '';
+      }
+
+      var rawTitle = value.title;
+      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
+        rawTitle = value.label;
+      }
+      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
+        rawTitle = value.text;
+      }
+      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
+        rawTitle = value.name;
+      }
+      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
+        rawTitle = rawValue;
+      }
+
+      return {
+        value: typeof rawValue === 'undefined' || rawValue === null ? '' : String(rawValue),
+        title: typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '' ? String(rawValue || '') : String(rawTitle)
+      };
+    }
+
+    if (value === null || typeof value === 'undefined') {
+      return { value: '', title: '' };
+    }
+
+    return { value: String(value), title: String(value) };
+  },
+
+  normalizeParameterObject: function(value, multiple) {
+    if (Array.isArray(value)) {
+      var list = [];
+      var titles = [];
+      for (var i = 0; i < value.length; ++i) {
+        var item = HC_REPORT_FALLBACK_CORE.normalizeSingleParameter(value[i]);
+        if (!item.value) {
+          continue;
+        }
+        list.push(item.value);
+        titles.push(item.title);
+      }
+      return {
+        value: multiple ? list : (list[0] || ''),
+        title: multiple ? titles : (titles[0] || '')
+      };
+    }
+
+    var normalized = HC_REPORT_FALLBACK_CORE.normalizeSingleParameter(value);
+    return {
+      value: multiple ? (normalized.value ? [normalized.value] : []) : normalized.value,
+      title: multiple ? (normalized.title ? [normalized.title] : []) : normalized.title
+    };
+  },
+
+  normalizeDateValue: function(value) {
+    if (!value) {
+      return '';
+    }
+    if (value instanceof Date && !isNaN(value.getTime())) {
+      return value.toLocaleDateString('en-CA');
+    }
+
+    var dateValue = String(value).trim();
+    var iso = dateValue.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (iso) {
+      return iso[1];
+    }
+
+    var ru = dateValue.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+    if (ru) {
+      return ru[3] + '-' + ru[2] + '-' + ru[1];
+    }
+
+    var parsed = new Date(dateValue);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString('en-CA');
+    }
+    return '';
+  },
+
+  toPeriodBoundary: function(dateValue, isEndOfDay) {
+    var normalizedDate = HC_REPORT_FALLBACK_CORE.normalizeDateValue(dateValue);
+    if (!normalizedDate) {
+      return '';
+    }
+    return normalizedDate + (isEndOfDay ? ' 23:59:59' : ' 00:00:00');
+  },
+
+  normalizeOptionList: function(items) {
+    var normalized = [];
+    for (var i = 0; i < items.length; ++i) {
+      var item = items[i] || {};
+      var rawValue = item.id;
+      if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
+        rawValue = item.value;
+      }
+      if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
+        continue;
+      }
+
+      var rawTitle = item.title;
+      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
+        rawTitle = item.label;
+      }
+      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
+        rawTitle = item.name;
+      }
+      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
+        rawTitle = rawValue;
+      }
+
+      normalized.push({ value: String(rawValue), title: String(rawTitle) });
+    }
+    return normalized;
+  },
+
+  formatDslLiteral: function(value) {
+    if (Array.isArray(value)) {
+      var parts = [];
+      for (var i = 0; i < value.length; ++i) {
+        var current = HC_REPORT_FALLBACK_CORE.formatDslLiteral(value[i]);
+        if (current !== "''") {
+          parts.push(current);
+        }
+      }
+      return parts.length > 0 ? parts.join(', ') : "''";
+    }
+
+    if (value === null || typeof value === 'undefined') {
+      return "''";
+    }
+    var str = String(value).trim();
+    if (!str) {
+      return "''";
+    }
+    if (/^-?\d+(?:\.\d+)?$/.test(str)) {
+      return str;
+    }
+    return "'" + str.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
+  },
+
+  sanitizeDslNumericLiterals: function(expression) {
+    return String(expression || '').replace(/\(\s*'(-?\d+(?:\.\d+)?)'\s*\)/g, '($1)');
+  },
+
+  findUnresolvedDsPlaceholders: function(expression) {
+    var source = String(expression || '');
+    var matches = source.match(/&[A-Za-zА-Яа-я_][A-Za-zА-Яа-я0-9_\.\(\)-]*/g) || [];
+    var unique = [];
+    for (var i = 0; i < matches.length; ++i) {
+      if (unique.indexOf(matches[i]) < 0) {
+        unique.push(matches[i]);
+      }
+    }
+    return unique;
+  },
+
+  replaceDsPlaceholders: function(expression, tokenMap) {
+    var out = String(expression || '');
+    var keys = Object.keys(tokenMap || {}).sort(function(a, b) {
+      return b.length - a.length;
+    });
+    for (var i = 0; i < keys.length; ++i) {
+      var key = keys[i];
+      out = out.split('&' + key).join(tokenMap[key]);
+    }
+    return out;
+  },
+
+  getResponseDataItems: function(responseData) {
+    return Array.isArray(responseData && responseData.data) ? responseData.data : [];
+  },
+
+  normalizeReportRows: function(items, rowNormalizer) {
+    var sourceItems = Array.isArray(items) ? items : [];
+    var out = [];
+    for (var i = 0; i < sourceItems.length; ++i) {
+      out.push(rowNormalizer(sourceItems[i] || {}));
+    }
+    return out;
+  },
+
+  rowMatchesMockFilter: function(row, filter, filterValues) {
+    var selectedValue = filterValues[filter.key];
+    var rowValue = row && typeof row[filter.key] !== 'undefined' && row[filter.key] !== null
+      ? String(row[filter.key])
+      : '';
+
+    if (filter.multiple) {
+      if (!Array.isArray(selectedValue) || selectedValue.length === 0) {
+        return true;
+      }
+      return selectedValue.indexOf(rowValue) >= 0;
+    }
+
+    if (selectedValue === null || typeof selectedValue === 'undefined' || String(selectedValue) === '') {
+      return true;
+    }
+
+    return String(selectedValue) === rowValue;
+  },
+
+  applyMockFilters: function(rows, filters, filterValues) {
+    var sourceRows = Array.isArray(rows) ? rows : [];
+    var filteredRows = [];
+
+    for (var i = 0; i < sourceRows.length; ++i) {
+      var row = sourceRows[i] || {};
+      var isMatch = true;
+
+      for (var j = 0; j < filters.length; ++j) {
+        if (!HC_REPORT_FALLBACK_CORE.rowMatchesMockFilter(row, filters[j], filterValues)) {
+          isMatch = false;
+          break;
+        }
+      }
+
+      if (isMatch) {
+        filteredRows.push(row);
+      }
+    }
+
+    return filteredRows;
+  }
+};
+var HC_REPORT_CORE_API = window.HC_REPORT_CORE || HC_REPORT_FALLBACK_CORE;
 
 // Core contract:
 // Keep generic runtime, datasource transport, mock/live switching,
@@ -7,15 +272,110 @@ var HC_DEBUG = false;
 // Customize only report-specific config: title, filters, columns,
 // datasource expression, and datasource-to-row field mapping.
 
+var HC_REPORT_MANIFEST = window.HC_REPORT_MANIFEST || null;
+var HC_REPORT_DS_TEXT = window.HC_REPORT_DS_TEXT || null;
+var HC_REPORT_DEFAULT_CONFIG = {
+  reportTitle: 'Отчет: Склад Розничный',
+  mockDataFile: 'mock-data.json',
+  filters: [
+    {
+      key: 'склад',
+      dsKey: 'склад',
+      title: 'Склад*',
+      multiple: true,
+      aliases: ['склад', 'warehouse', '$склад', '$warehouse'],
+      optionsExpression: 'catalog.склад | Select(id, title)'
+    },
+    {
+      key: 'группа',
+      dsKey: 'группа',
+      title: 'Группа',
+      multiple: false,
+      aliases: ['группа', 'group', '$группа', '$group'],
+      optionsExpression: 'catalog.группа | Select (id,title)'
+    }
+  ],
+  columns: [
+    { key: 'номенклатура', label: 'Номенклатура', type: 'text', alignClass: 'text-left' },
+    { key: 'остаток_на_начало', label: 'Остаток на начало', type: 'number', alignClass: 'text-right' },
+    { key: 'приход', label: 'Приход', type: 'number', alignClass: 'text-right' },
+    { key: 'расход', label: 'Расход', type: 'number', alignClass: 'text-right' },
+    { key: 'возврат', label: 'Возврат', type: 'number', alignClass: 'text-right' },
+    { key: 'инвентаризация', label: 'Инвентаризация', type: 'number', alignClass: 'text-right' },
+    { key: 'остаток_на_конец', label: 'Остаток на конец', type: 'number', alignClass: 'text-right' }
+  ],
+  rowMap: {
+    номенклатура: ['номенклатура_title', 'item_name', 'name'],
+    остаток_на_начало: ['на_начало', 'opening_balance'],
+    приход: ['приход', 'incoming'],
+    расход: ['расход', 'outgoing'],
+    возврат: ['возврат', 'return_qty'],
+    инвентаризация: ['инвентаризация', 'inventory_qty'],
+    остаток_на_конец: ['на_конец', 'closing_balance']
+  }
+};
+var HC_REPORT_CONFIG = {
+  reportTitle: (HC_REPORT_MANIFEST && HC_REPORT_MANIFEST.reportTitle) || HC_REPORT_DEFAULT_CONFIG.reportTitle,
+  mockDataFile: (HC_REPORT_MANIFEST && HC_REPORT_MANIFEST.mockDataFile) || HC_REPORT_DEFAULT_CONFIG.mockDataFile,
+  filters: (HC_REPORT_MANIFEST && Array.isArray(HC_REPORT_MANIFEST.filters) && HC_REPORT_MANIFEST.filters.length > 0)
+    ? HC_REPORT_MANIFEST.filters
+    : HC_REPORT_DEFAULT_CONFIG.filters,
+  columns: (HC_REPORT_MANIFEST && Array.isArray(HC_REPORT_MANIFEST.columns) && HC_REPORT_MANIFEST.columns.length > 0)
+    ? HC_REPORT_MANIFEST.columns
+    : HC_REPORT_DEFAULT_CONFIG.columns,
+  rowMap: (HC_REPORT_MANIFEST && HC_REPORT_MANIFEST.rowMap) || HC_REPORT_DEFAULT_CONFIG.rowMap
+};
+var HC_REPORT_DEFAULT_DATASOURCE_EXPRESSION = [
+  'catalog.номенклатура | Select (id as номенклатура, title as номенклатура_title, группа) | Gettitle() as t1;',
+  '',
+  'движение_ном | склад (&склад) | Period(,&dateStart.EndDay().AddDays(-1)) | GroupBy(номенклатура, колво as на_начало_) as на_начало;',
+  'движение_ном | склад (&склад) | операция (11) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as приход_, операция) | GroupBy (номенклатура, приход_, операция) as приход;',
+  'движение_ном | склад (&склад) | операция (14) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as расход_, операция) | GroupBy (номенклатура, расход_, операция) as расход;',
+  'движение_ном | склад (&склад) | операция (15) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as возврат_, операция) | GroupBy (номенклатура, возврат_, операция) as возврат;',
+  'движение_ном | склад (&склад) | операция (10) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as инвентаризация_, операция) | GroupBy (номенклатура, инвентаризация_, операция) as инвентаризация;',
+  '',
+  'TempTable.на_начало | FullJoinAuto(приход, приход.номенклатура =номенклатура) | FullJoinAuto(расход, расход.номенклатура =номенклатура) | FullJoinAuto(возврат, возврат.номенклатура =номенклатура)',
+  '| FullJoinAuto(инвентаризация, инвентаризация.номенклатура =номенклатура)',
+  '',
+  '| AddColumn (x, number, 0) | Coalesce (приход, приход_, x) | Coalesce (расход__, расход_, x) | Coalesce (на_начало, на_начало_, x) | Coalesce (возврат__, возврат_, x) | Coalesce (инвентаризация, инвентаризация_, x)',
+  '| Compute(расход, расход__ * -1) | Compute(возврат, возврат__ * -1)',
+  '| Compute(на_конец, на_начало + приход - расход - возврат + инвентаризация) | DeleteColumn (на_начало_, приход_, расход_, расход__, возврат_, возврат__, инвентаризация_, x)',
+  '| LeftJoinAuto(t1, t1.номенклатура =номенклатура) | группа (&группа)',
+  '| Compute(x, на_начало*на_начало+приход*приход+расход*расход+на_конец*на_конец+возврат*возврат+инвентаризация*инвентаризация) | Having (x>0) | OrderBy (номенклатура_title)'
+].join('\n');
+function buildInitialFilterValues(filters) {
+  var state = {};
+  for (var i = 0; i < filters.length; ++i) {
+    state[filters[i].key] = filters[i].multiple ? [] : '';
+  }
+  return state;
+}
+
+function buildInitialFilterTitles(filters) {
+  var state = {};
+  for (var i = 0; i < filters.length; ++i) {
+    state[filters[i].key] = filters[i].multiple ? [] : '';
+  }
+  return state;
+}
+
+function buildInitialFilterOptions(filters) {
+  var state = {};
+  for (var i = 0; i < filters.length; ++i) {
+    state[filters[i].key] = [];
+  }
+  return state;
+}
+
 var vueApp = new Vue({
   el: '#root',
   data: {
     // Report-specific config: title and visible report identity.
-    reportTitle: 'Отчет: Склад Розничный',
+    reportTitle: HC_REPORT_CONFIG.reportTitle,
     buildVersion: CORE_BUILD,
     isWaiting: false,
     dataSourceMode: 'hubcloud',
-    mockDataUrl: './mock-data.json',
+    mockDataUrl: './' + HC_REPORT_CONFIG.mockDataFile,
 
     period_from: new Date().toLocaleDateString('en-CA'),
     period_to: new Date().toLocaleDateString('en-CA'),
@@ -23,48 +383,14 @@ var vueApp = new Vue({
     dateFinish: '',
 
     // Report-specific config: filter definitions for the current report.
-    filters: [
-      {
-        key: 'склад',
-        dsKey: 'склад',
-        title: 'Склад*',
-        multiple: true,
-        aliases: ['склад', 'warehouse', '$склад', '$warehouse'],
-        optionsExpression: 'catalog.склад | Select(id, title)'
-      },
-      {
-        key: 'группа',
-        dsKey: 'группа',
-        title: 'Группа',
-        multiple: false,
-        aliases: ['группа', 'group', '$группа', '$group'],
-        optionsExpression: 'catalog.группа | Select (id,title)'
-      }
-    ],
+    filters: HC_REPORT_CONFIG.filters,
 
-    filterValues: {
-      склад: [],
-      группа: ''
-    },
-    filterTitles: {
-      склад: [],
-      группа: ''
-    },
-    filterOptions: {
-      склад: [],
-      группа: []
-    },
+    filterValues: buildInitialFilterValues(HC_REPORT_CONFIG.filters),
+    filterTitles: buildInitialFilterTitles(HC_REPORT_CONFIG.filters),
+    filterOptions: buildInitialFilterOptions(HC_REPORT_CONFIG.filters),
 
     // Report-specific config: visible table columns for the current report.
-    columns: [
-      { key: 'номенклатура', label: 'Номенклатура', type: 'text', alignClass: 'text-left' },
-      { key: 'остаток_на_начало', label: 'Остаток на начало', type: 'number', alignClass: 'text-right' },
-      { key: 'приход', label: 'Приход', type: 'number', alignClass: 'text-right' },
-      { key: 'расход', label: 'Расход', type: 'number', alignClass: 'text-right' },
-      { key: 'возврат', label: 'Возврат', type: 'number', alignClass: 'text-right' },
-      { key: 'инвентаризация', label: 'Инвентаризация', type: 'number', alignClass: 'text-right' },
-      { key: 'остаток_на_конец', label: 'Остаток на конец', type: 'number', alignClass: 'text-right' }
-    ],
+    columns: HC_REPORT_CONFIG.columns,
     rows: []
   },
   methods: {
@@ -81,97 +407,20 @@ var vueApp = new Vue({
     },
 
     getQueryParameters: function() {
-      var queryParameters = {};
-      var externalParameters = window.HC_QUERY_PARAMETERS;
-      if (externalParameters && typeof externalParameters === 'object') {
-        queryParameters = Object.assign({}, externalParameters);
-      }
-      var urlParams = new URLSearchParams(window.location.search);
-      urlParams.forEach(function(value, key) {
-        queryParameters[key] = value;
-      });
-      return queryParameters;
+      return HC_REPORT_CORE_API.getQueryParameters(window.location.search, window.HC_QUERY_PARAMETERS);
     },
 
     // Parameter normalization
     getFirstDefinedValue: function(source, aliases) {
-      for (var i = 0; i < aliases.length; ++i) {
-        var key = aliases[i];
-        if (
-          Object.prototype.hasOwnProperty.call(source, key) &&
-          source[key] !== null &&
-          typeof source[key] !== 'undefined' &&
-          source[key] !== ''
-        ) {
-          return source[key];
-        }
-      }
-      return null;
+      return HC_REPORT_CORE_API.getFirstDefinedValue(source, aliases);
     },
 
     normalizeSingleParameter: function(value) {
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        var rawValue = value.id;
-        if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
-          rawValue = value.value;
-        }
-        if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
-          rawValue = value.code;
-        }
-        if (typeof rawValue === 'undefined' || rawValue === null) {
-          rawValue = '';
-        }
-
-        var rawTitle = value.title;
-        if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-          rawTitle = value.label;
-        }
-        if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-          rawTitle = value.text;
-        }
-        if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-          rawTitle = value.name;
-        }
-        if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-          rawTitle = rawValue;
-        }
-
-        return {
-          value: typeof rawValue === 'undefined' || rawValue === null ? '' : String(rawValue),
-          title: typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '' ? String(rawValue || '') : String(rawTitle)
-        };
-      }
-
-      if (value === null || typeof value === 'undefined') {
-        return { value: '', title: '' };
-      }
-
-      return { value: String(value), title: String(value) };
+      return HC_REPORT_CORE_API.normalizeSingleParameter(value);
     },
 
     normalizeParameterObject: function(value, multiple) {
-      if (Array.isArray(value)) {
-        var list = [];
-        var titles = [];
-        for (var i = 0; i < value.length; ++i) {
-          var item = this.normalizeSingleParameter(value[i]);
-          if (!item.value) {
-            continue;
-          }
-          list.push(item.value);
-          titles.push(item.title);
-        }
-        return {
-          value: multiple ? list : (list[0] || ''),
-          title: multiple ? titles : (titles[0] || '')
-        };
-      }
-
-      var normalized = this.normalizeSingleParameter(value);
-      return {
-        value: multiple ? (normalized.value ? [normalized.value] : []) : normalized.value,
-        title: multiple ? (normalized.title ? [normalized.title] : []) : normalized.title
-      };
+      return HC_REPORT_CORE_API.normalizeParameterObject(value, multiple);
     },
 
     initializeFilterStateFromQuery: function(filter, queryParameters) {
@@ -185,29 +434,7 @@ var vueApp = new Vue({
     },
 
     normalizeDateValue: function(value) {
-      if (!value) {
-        return '';
-      }
-      if (value instanceof Date && !isNaN(value.getTime())) {
-        return value.toLocaleDateString('en-CA');
-      }
-
-      var dateValue = String(value).trim();
-      var iso = dateValue.match(/^(\d{4}-\d{2}-\d{2})/);
-      if (iso) {
-        return iso[1];
-      }
-
-      var ru = dateValue.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
-      if (ru) {
-        return ru[3] + '-' + ru[2] + '-' + ru[1];
-      }
-
-      var parsed = new Date(dateValue);
-      if (!isNaN(parsed.getTime())) {
-        return parsed.toLocaleDateString('en-CA');
-      }
-      return '';
+      return HC_REPORT_CORE_API.normalizeDateValue(value);
     },
 
     // Period controls
@@ -225,11 +452,7 @@ var vueApp = new Vue({
     },
 
     toPeriodBoundary: function(dateValue, isEndOfDay) {
-      var normalizedDate = this.normalizeDateValue(dateValue);
-      if (!normalizedDate) {
-        return '';
-      }
-      return normalizedDate + (isEndOfDay ? ' 23:59:59' : ' 00:00:00');
+      return HC_REPORT_CORE_API.toPeriodBoundary(dateValue, isEndOfDay);
     },
 
     // Runtime initialization
@@ -328,107 +551,31 @@ var vueApp = new Vue({
 
     // Filter option helpers
     normalizeOptionList: function(items) {
-      var normalized = [];
-      for (var i = 0; i < items.length; ++i) {
-        var item = items[i] || {};
-        var rawValue = item.id;
-        if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
-          rawValue = item.value;
-        }
-        if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
-          continue;
-        }
-
-        var rawTitle = item.title;
-        if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-          rawTitle = item.label;
-        }
-        if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-          rawTitle = item.name;
-        }
-        if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-          rawTitle = rawValue;
-        }
-
-        normalized.push({ value: String(rawValue), title: String(rawTitle) });
-      }
-      return normalized;
+      return HC_REPORT_CORE_API.normalizeOptionList(items);
     },
 
     // Datasource expression helpers
     formatDslLiteral: function(value) {
-      if (Array.isArray(value)) {
-        var parts = [];
-        for (var i = 0; i < value.length; ++i) {
-          var current = this.formatDslLiteral(value[i]);
-          if (current !== "''") {
-            parts.push(current);
-          }
-        }
-        return parts.length > 0 ? parts.join(', ') : "''";
-      }
-
-      if (value === null || typeof value === 'undefined') {
-        return "''";
-      }
-      var str = String(value).trim();
-      if (!str) {
-        return "''";
-      }
-      if (/^-?\d+(?:\.\d+)?$/.test(str)) {
-        return str;
-      }
-      return "'" + str.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
+      return HC_REPORT_CORE_API.formatDslLiteral(value);
     },
 
     sanitizeDslNumericLiterals: function(expression) {
-      return String(expression || '').replace(/\(\s*'(-?\d+(?:\.\d+)?)'\s*\)/g, '($1)');
+      return HC_REPORT_CORE_API.sanitizeDslNumericLiterals(expression);
     },
 
     findUnresolvedDsPlaceholders: function(expression) {
-      var source = String(expression || '');
-      var matches = source.match(/&[A-Za-zА-Яа-я_][A-Za-zА-Яа-я0-9_\.\(\)-]*/g) || [];
-      var unique = [];
-      for (var i = 0; i < matches.length; ++i) {
-        if (unique.indexOf(matches[i]) < 0) {
-          unique.push(matches[i]);
-        }
-      }
-      return unique;
+      return HC_REPORT_CORE_API.findUnresolvedDsPlaceholders(expression);
     },
 
     replaceDsPlaceholders: function(expression, tokenMap) {
-      var out = String(expression || '');
-      var keys = Object.keys(tokenMap || {}).sort(function(a, b) {
-        return b.length - a.length;
-      });
-      for (var i = 0; i < keys.length; ++i) {
-        var key = keys[i];
-        out = out.split('&' + key).join(tokenMap[key]);
-      }
-      return out;
+      return HC_REPORT_CORE_API.replaceDsPlaceholders(expression, tokenMap);
     },
 
     getDatasourceExpression: function() {
-      // Report-specific config: keep synchronized with DS.txt.
-      return [
-        'catalog.номенклатура | Select (id as номенклатура, title as номенклатура_title, группа) | Gettitle() as t1;',
-        '',
-        'движение_ном | склад (&склад) | Period(,&dateStart.EndDay().AddDays(-1)) | GroupBy(номенклатура, колво as на_начало_) as на_начало;',
-        'движение_ном | склад (&склад) | операция (11) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as приход_, операция) | GroupBy (номенклатура, приход_, операция) as приход;',
-        'движение_ном | склад (&склад) | операция (14) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as расход_, операция) | GroupBy (номенклатура, расход_, операция) as расход;',
-        'движение_ном | склад (&склад) | операция (15) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as возврат_, операция) | GroupBy (номенклатура, возврат_, операция) as возврат;',
-        'движение_ном | склад (&склад) | операция (10) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as инвентаризация_, операция) | GroupBy (номенклатура, инвентаризация_, операция) as инвентаризация;',
-        '',
-        'TempTable.на_начало | FullJoinAuto(приход, приход.номенклатура =номенклатура) | FullJoinAuto(расход, расход.номенклатура =номенклатура) | FullJoinAuto(возврат, возврат.номенклатура =номенклатура)',
-        '| FullJoinAuto(инвентаризация, инвентаризация.номенклатура =номенклатура)',
-        '',
-        '| AddColumn (x, number, 0) | Coalesce (приход, приход_, x) | Coalesce (расход__, расход_, x) | Coalesce (на_начало, на_начало_, x) | Coalesce (возврат__, возврат_, x) | Coalesce (инвентаризация, инвентаризация_, x)',
-        '| Compute(расход, расход__ * -1) | Compute(возврат, возврат__ * -1)',
-        '| Compute(на_конец, на_начало + приход - расход - возврат + инвентаризация) | DeleteColumn (на_начало_, приход_, расход_, расход__, возврат_, возврат__, инвентаризация_, x)',
-        '| LeftJoinAuto(t1, t1.номенклатура =номенклатура) | группа (&группа)',
-        '| Compute(x, на_начало*на_начало+приход*приход+расход*расход+на_конец*на_конец+возврат*возврат+инвентаризация*инвентаризация) | Having (x>0) | OrderBy (номенклатура_title)'
-      ].join('\n');
+      if (HC_REPORT_DS_TEXT && String(HC_REPORT_DS_TEXT).trim()) {
+        return String(HC_REPORT_DS_TEXT).trim();
+      }
+      return HC_REPORT_DEFAULT_DATASOURCE_EXPRESSION;
     },
 
     // Report row normalization
@@ -442,73 +589,51 @@ var vueApp = new Vue({
       return fallback;
     },
 
+    getRowMapKeys: function(fieldName, fallbackKeys) {
+      if (HC_REPORT_CONFIG.rowMap && Array.isArray(HC_REPORT_CONFIG.rowMap[fieldName])) {
+        return HC_REPORT_CONFIG.rowMap[fieldName];
+      }
+      if (HC_REPORT_DEFAULT_CONFIG.rowMap && Array.isArray(HC_REPORT_DEFAULT_CONFIG.rowMap[fieldName])) {
+        return HC_REPORT_DEFAULT_CONFIG.rowMap[fieldName];
+      }
+      return fallbackKeys || [];
+    },
+
+    normalizeMappedValue: function(item, column) {
+      var key = column.key;
+      var rawValue = this.readField(item, this.getRowMapKeys(key), column.type === 'number' ? 0 : '');
+      if (column.type === 'number') {
+        return Number(rawValue || 0);
+      }
+      if (rawValue === null || typeof rawValue === 'undefined') {
+        return '';
+      }
+      return String(rawValue);
+    },
+
     normalizeHubCloudRow: function(item) {
-      // Report-specific config: map datasource fields into report row fields.
-      return {
-        номенклатура: this.readField(item, ['номенклатура_title', 'item_name', 'name'], ''),
-        остаток_на_начало: Number(this.readField(item, ['на_начало', 'opening_balance'], 0) || 0),
-        приход: Number(this.readField(item, ['приход', 'incoming'], 0) || 0),
-        расход: Number(this.readField(item, ['расход', 'outgoing'], 0) || 0),
-        возврат: Number(this.readField(item, ['возврат', 'return_qty'], 0) || 0),
-        инвентаризация: Number(this.readField(item, ['инвентаризация', 'inventory_qty'], 0) || 0),
-        остаток_на_конец: Number(this.readField(item, ['на_конец', 'closing_balance'], 0) || 0)
-      };
+      var row = {};
+      for (var i = 0; i < this.columns.length; ++i) {
+        var column = this.columns[i];
+        row[column.key] = this.normalizeMappedValue(item, column);
+      }
+      return row;
     },
 
     normalizeReportRows: function(items) {
-      var sourceItems = Array.isArray(items) ? items : [];
-      var out = [];
-      for (var i = 0; i < sourceItems.length; ++i) {
-        out.push(this.normalizeHubCloudRow(sourceItems[i] || {}));
-      }
-      return out;
+      return HC_REPORT_CORE_API.normalizeReportRows(items, this.normalizeHubCloudRow.bind(this));
     },
 
     getResponseDataItems: function(responseData) {
-      return Array.isArray(responseData && responseData.data) ? responseData.data : [];
+      return HC_REPORT_CORE_API.getResponseDataItems(responseData);
     },
 
     rowMatchesMockFilter: function(row, filter) {
-      var selectedValue = this.filterValues[filter.key];
-      var rowValue = row && typeof row[filter.key] !== 'undefined' && row[filter.key] !== null
-        ? String(row[filter.key])
-        : '';
-
-      if (filter.multiple) {
-        if (!Array.isArray(selectedValue) || selectedValue.length === 0) {
-          return true;
-        }
-        return selectedValue.indexOf(rowValue) >= 0;
-      }
-
-      if (selectedValue === null || typeof selectedValue === 'undefined' || String(selectedValue) === '') {
-        return true;
-      }
-
-      return String(selectedValue) === rowValue;
+      return HC_REPORT_CORE_API.rowMatchesMockFilter(row, filter, this.filterValues);
     },
 
     applyMockFilters: function(rows) {
-      var sourceRows = Array.isArray(rows) ? rows : [];
-      var filteredRows = [];
-
-      for (var i = 0; i < sourceRows.length; ++i) {
-        var row = sourceRows[i] || {};
-        var isMatch = true;
-
-        for (var j = 0; j < this.filters.length; ++j) {
-          if (!this.rowMatchesMockFilter(row, this.filters[j])) {
-            isMatch = false;
-            break;
-          }
-        }
-
-        if (isMatch) {
-          filteredRows.push(row);
-        }
-      }
-
-      return filteredRows;
+      return HC_REPORT_CORE_API.applyMockFilters(rows, this.filters, this.filterValues);
     },
 
     resetRowsWithToast: function(message, alertClass) {

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
@@ -147,6 +147,44 @@
       });
     }
 
+    function loadManifest() {
+      return fetch("./report.manifest.json?v=" + cacheKey)
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          return response.json();
+        })
+        .then(function(manifest) {
+          window.HC_REPORT_MANIFEST = manifest || null;
+        })
+        .catch(function() {
+          window.HC_REPORT_MANIFEST = null;
+        });
+    }
+
+    function loadManifestDatasource() {
+      var manifest = window.HC_REPORT_MANIFEST;
+      if (!manifest || !manifest.dsFile) {
+        window.HC_REPORT_DS_TEXT = null;
+        return Promise.resolve();
+      }
+
+      return fetch("./" + manifest.dsFile + "?v=" + cacheKey)
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          return response.text();
+        })
+        .then(function(dsText) {
+          window.HC_REPORT_DS_TEXT = dsText || null;
+        })
+        .catch(function() {
+          window.HC_REPORT_DS_TEXT = null;
+        });
+    }
+
     fetch("./index.html?v=" + cacheKey)
       .then(function(response) {
         if (!response.ok) {
@@ -157,7 +195,16 @@
       })
       .then(function(html) {
         document.getElementById("sandbox-shell").innerHTML = html.replace(/^<</, "<");
-        return loadScript("./script.js");
+        return loadManifest()
+          .then(function() {
+            return loadManifestDatasource();
+          })
+          .then(function() {
+            return loadScript("./core/script.core.js");
+          })
+          .then(function() {
+            return loadScript("./script.js");
+          });
       })
       .catch(function(error) {
         document.getElementById("sandbox-shell").innerHTML =
