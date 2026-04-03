@@ -485,33 +485,48 @@ var vueApp = new Vue({
       return 'hubcloud';
     },
 
-    initializeRuntime: function() {
-      var qp = this.getQueryParameters();
-      this.dataSourceMode = this.detectDataSourceMode();
-
-      var singleDate = this.getFirstDefinedValue(qp, ['$h.date', 'h.date', 'date']);
-      if (singleDate) {
-        var normalizedSingleDate = this.normalizeDateValue(singleDate);
-        if (normalizedSingleDate) {
-          this.period_from = normalizedSingleDate;
-          this.period_to = normalizedSingleDate;
-        }
+    applySingleDateFromQuery: function(queryParameters) {
+      var singleDate = this.getFirstDefinedValue(queryParameters, ['$h.date', 'h.date', 'date']);
+      if (!singleDate) {
+        return;
       }
 
-      var periodFromValue = this.getFirstDefinedValue(qp, ['period_from', 'date_from', 'from', '$h.period_from', 'h.period_from']);
-      var periodToValue = this.getFirstDefinedValue(qp, ['period_to', 'date_to', 'to', '$h.period_to', 'h.period_to']);
+      var normalizedSingleDate = this.normalizeDateValue(singleDate);
+      if (!normalizedSingleDate) {
+        return;
+      }
+
+      this.period_from = normalizedSingleDate;
+      this.period_to = normalizedSingleDate;
+    },
+
+    applyPeriodRangeFromQuery: function(queryParameters) {
+      var periodFromValue = this.getFirstDefinedValue(queryParameters, ['period_from', 'date_from', 'from', '$h.period_from', 'h.period_from']);
+      var periodToValue = this.getFirstDefinedValue(queryParameters, ['period_to', 'date_to', 'to', '$h.period_to', 'h.period_to']);
       var normalizedFrom = this.normalizeDateValue(periodFromValue);
       var normalizedTo = this.normalizeDateValue(periodToValue);
+
       if (normalizedFrom) {
         this.period_from = normalizedFrom;
       }
       if (normalizedTo) {
         this.period_to = normalizedTo;
       }
+    },
 
+    initializeFiltersFromQuery: function(queryParameters) {
       for (var i = 0; i < this.filters.length; ++i) {
-        this.initializeFilterStateFromQuery(this.filters[i], qp);
+        this.initializeFilterStateFromQuery(this.filters[i], queryParameters);
       }
+    },
+
+    initializeRuntime: function() {
+      var qp = this.getQueryParameters();
+      this.dataSourceMode = this.detectDataSourceMode();
+
+      this.applySingleDateFromQuery(qp);
+      this.applyPeriodRangeFromQuery(qp);
+      this.initializeFiltersFromQuery(qp);
 
       this.debugLog('initializeRuntime', {
         period_from: this.period_from,
@@ -524,17 +539,9 @@ var vueApp = new Vue({
     // Datasource transport and preparation
     executeDatasourceRequest: function(config, doneCallback, failCallback) {
       if (this.dataSourceMode === 'mock') {
-        $.getJSON(this.mockDataUrl)
-          .done(function(mockResponse) {
-            var normalized = mockResponse;
-            if (Array.isArray(mockResponse)) {
-              normalized = { isOK: true, data: this.applyMockFilters(mockResponse) };
-            } else if (mockResponse && typeof mockResponse === 'object' && Array.isArray(mockResponse.rows)) {
-              normalized = { isOK: true, data: this.applyMockFilters(mockResponse.rows) };
-            } else if (!mockResponse || typeof mockResponse !== 'object') {
-              normalized = { isOK: true, data: [] };
-            }
-            doneCallback(normalized);
+        this.loadMockPayload()
+          .done(function(mockPayload) {
+            doneCallback(this.buildMockDatasourceResponse(mockPayload));
           }.bind(this))
           .fail(failCallback);
         return;
@@ -642,6 +649,29 @@ var vueApp = new Vue({
       return HC_REPORT_CORE_API.getResponseDataItems(responseData);
     },
 
+    loadMockPayload: function() {
+      return $.getJSON(this.mockDataUrl).then(function(response) {
+        return response || {};
+      });
+    },
+
+    getMockRows: function(mockPayload) {
+      if (Array.isArray(mockPayload)) {
+        return mockPayload;
+      }
+      if (mockPayload && typeof mockPayload === 'object' && Array.isArray(mockPayload.rows)) {
+        return mockPayload.rows;
+      }
+      return [];
+    },
+
+    buildMockDatasourceResponse: function(mockPayload) {
+      return {
+        isOK: true,
+        data: this.applyMockFilters(this.getMockRows(mockPayload))
+      };
+    },
+
     rowMatchesMockFilter: function(row, filter) {
       return HC_REPORT_CORE_API.rowMatchesMockFilter(row, filter, this.filterValues);
     },
@@ -669,6 +699,14 @@ var vueApp = new Vue({
       this.dateStart = this.toPeriodBoundary(this.period_from, false);
       this.dateFinish = this.toPeriodBoundary(this.period_to, true);
 
+      var tokenMap = this.buildDatasourceTokenMap();
+      var expression = this.getDatasourceExpression();
+      expression = this.replaceDsPlaceholders(expression, tokenMap);
+      expression = this.sanitizeDslNumericLiterals(expression);
+      return expression;
+    },
+
+    buildDatasourceTokenMap: function() {
       var tokenMap = {
         dateStart: this.dateStart,
         dateFinish: this.dateFinish
@@ -678,11 +716,28 @@ var vueApp = new Vue({
         var filter = this.filters[i];
         tokenMap[filter.dsKey || filter.key] = this.formatDslLiteral(this.filterValues[filter.key]);
       }
+      return tokenMap;
+    },
 
-      var expression = this.getDatasourceExpression();
-      expression = this.replaceDsPlaceholders(expression, tokenMap);
-      expression = this.sanitizeDslNumericLiterals(expression);
-      return expression;
+    validateDatasourceExpression: function(expression) {
+      if (!String(expression || '').trim()) {
+        return 'Не задан getDatasourceExpression() для текущего отчета';
+      }
+
+      var unresolved = this.findUnresolvedDsPlaceholders(expression);
+      if (unresolved.length > 0) {
+        return 'Не подставлены параметры DS: ' + unresolved.join(', ');
+      }
+
+      return '';
+    },
+
+    submitDatasourceExpression: function(expression) {
+      this.executeDatasourceRequest(
+        { expression: expression },
+        this.finishReportLoadSuccess.bind(this),
+        this.finishReportLoadError.bind(this)
+      );
     },
 
     // Filter loading and defaults
@@ -705,6 +760,40 @@ var vueApp = new Vue({
       this.onFilterChange(filter.key);
     },
 
+    applyFilterOptions: function(filter, items) {
+      this.filterOptions[filter.key] = this.normalizeOptionList(items);
+      this.syncFilterState(filter);
+    },
+
+    clearFilterOptions: function(filter) {
+      this.filterOptions[filter.key] = [];
+    },
+
+    loadFilterOptions: function(filter) {
+      var deferred = $.Deferred();
+
+      if (!filter.optionsExpression) {
+        this.clearFilterOptions(filter);
+        deferred.resolve();
+        return deferred.promise();
+      }
+
+      this.executeDatasourceRequest(
+        { expression: filter.optionsExpression },
+        function(responseData) {
+          var items = Array.isArray(responseData.data) ? responseData.data : [];
+          this.applyFilterOptions(filter, items);
+          deferred.resolve();
+        }.bind(this),
+        function() {
+          this.clearFilterOptions(filter);
+          deferred.resolve();
+        }.bind(this)
+      );
+
+      return deferred.promise();
+    },
+
     loadHubCloudFilters: function() {
       if (!this.filters.length) {
         return $.Deferred().resolve().promise();
@@ -712,30 +801,7 @@ var vueApp = new Vue({
 
       var pending = [];
       for (var i = 0; i < this.filters.length; ++i) {
-        (function(filter) {
-          var deferred = $.Deferred();
-          pending.push(deferred.promise());
-
-          if (!filter.optionsExpression) {
-            this.filterOptions[filter.key] = [];
-            deferred.resolve();
-            return;
-          }
-
-          this.executeDatasourceRequest(
-            { expression: filter.optionsExpression },
-            function(responseData) {
-              var items = Array.isArray(responseData.data) ? responseData.data : [];
-              this.filterOptions[filter.key] = this.normalizeOptionList(items);
-              this.syncFilterState(filter);
-              deferred.resolve();
-            }.bind(this),
-            function() {
-              this.filterOptions[filter.key] = [];
-              deferred.resolve();
-            }.bind(this)
-          );
-        }.bind(this))(this.filters[i]);
+        pending.push(this.loadFilterOptions(this.filters[i]));
       }
 
       return $.when.apply($, pending);
@@ -749,22 +815,12 @@ var vueApp = new Vue({
       if (HC_DEBUG && typeof console !== 'undefined' && console.log) {
         console.log('[HC-DS-FINAL]', expression);
       }
-      if (!String(expression).trim()) {
-        this.resetRowsWithToast('Не задан getDatasourceExpression() для текущего отчета', 'warning');
+      var validationError = this.validateDatasourceExpression(expression);
+      if (validationError) {
+        this.resetRowsWithToast(validationError, validationError.indexOf('Не задан') === 0 ? 'warning' : 'danger');
         return;
       }
-
-      var unresolved = this.findUnresolvedDsPlaceholders(expression);
-      if (unresolved.length > 0) {
-        this.resetRowsWithToast('Не подставлены параметры DS: ' + unresolved.join(', '), 'danger');
-        return;
-      }
-
-      this.executeDatasourceRequest(
-        { expression: expression },
-        this.finishReportLoadSuccess.bind(this),
-        this.finishReportLoadError.bind(this)
-      );
+      this.submitDatasourceExpression(expression);
     },
 
     // Rendering helpers
@@ -878,33 +934,43 @@ var vueApp = new Vue({
     },
 
     // App bootstrap
-    initializeData: function() {
-      if (this.dataSourceMode === 'mock') {
-        $.getJSON(this.mockDataUrl)
-          .done(function(resp) {
-            var payload = resp || {};
-
-            var mockFilters = payload.filters || {};
-            for (var j = 0; j < this.filters.length; ++j) {
-              var filter = this.filters[j];
-              var key = filter.key;
-              var list = Array.isArray(mockFilters[key]) ? mockFilters[key] : [];
-              this.filterOptions[key] = this.normalizeOptionList(list);
-              this.syncFilterState(filter);
-            }
-
-            this.rows = this.normalizeReportRows(this.applyMockFilters(payload.rows));
-          }.bind(this))
-          .fail(function() {
-            this.rows = [];
-            this.makeToast('Не удалось загрузить mock-data.json', 'warning');
-          }.bind(this));
-        return;
+    bootstrapMockData: function(payload) {
+      var mockFilters = payload.filters || {};
+      for (var j = 0; j < this.filters.length; ++j) {
+        var filter = this.filters[j];
+        var key = filter.key;
+        var list = Array.isArray(mockFilters[key]) ? mockFilters[key] : [];
+        this.filterOptions[key] = this.normalizeOptionList(list);
+        this.syncFilterState(filter);
       }
 
+      this.rows = this.normalizeReportRows(this.buildMockDatasourceResponse(payload).data);
+    },
+
+    startMockMode: function() {
+      this.loadMockPayload()
+        .done(function(payload) {
+          this.bootstrapMockData(payload);
+        }.bind(this))
+        .fail(function() {
+          this.rows = [];
+          this.makeToast('Не удалось загрузить mock-data.json', 'warning');
+        }.bind(this));
+    },
+
+    startLiveMode: function() {
       this.loadHubCloudFilters().always(function() {
         this.loadReport();
       }.bind(this));
+    },
+
+    initializeData: function() {
+      if (this.dataSourceMode === 'mock') {
+        this.startMockMode();
+        return;
+      }
+
+      this.startLiveMode();
     }
   },
   mounted: function() {
