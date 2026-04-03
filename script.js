@@ -886,17 +886,15 @@ var vueApp = new Vue({
         .replace(/'/g, '&#39;');
     },
 
-    exportToExcel: function() {
-      if (!Array.isArray(this.rows) || this.rows.length === 0) {
-        this.makeToast('Нет данных для выгрузки', 'warning');
-        return;
-      }
-
+    buildExcelHeaderHtml: function() {
       var header = '<th>#</th>';
       for (var c = 0; c < this.columns.length; ++c) {
         header += '<th>' + this.escapeHtml(this.columns[c].label) + '</th>';
       }
+      return header;
+    },
 
+    buildExcelBodyHtml: function() {
       var body = '';
       for (var i = 0; i < this.rows.length; ++i) {
         body += '<tr><td>' + this.escapeHtml(i + 1) + '</td>';
@@ -906,10 +904,18 @@ var vueApp = new Vue({
         }
         body += '</tr>';
       }
+      return body;
+    },
 
+    buildExcelDocumentHtml: function() {
+      var header = this.buildExcelHeaderHtml();
+      var body = this.buildExcelBodyHtml();
       var html = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>" +
         "<table border='1'><thead><tr>" + header + "</tr></thead><tbody>" + body + "</tbody></table></body></html>";
+      return html;
+    },
 
+    downloadExcelDocument: function(html) {
       var blob = new Blob(['\uFEFF', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
       var link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -920,14 +926,28 @@ var vueApp = new Vue({
       URL.revokeObjectURL(link.href);
     },
 
+    exportToExcel: function() {
+      if (!Array.isArray(this.rows) || this.rows.length === 0) {
+        this.makeToast('Нет данных для выгрузки', 'warning');
+        return;
+      }
+
+      this.downloadExcelDocument(this.buildExcelDocumentHtml());
+    },
+
     printReport: function() {
       window.print();
     },
 
-    makeToast: function(text, alertClass) {
+    buildToastHtml: function(text, alertClass) {
       var template = "<div id='toastAlert' class='alert alert-%class% alert-dismissable' style='width:360px; position:fixed; top:20px; right:20px; z-index:9999;'><a href='#' class='close' data-dismiss='alert' aria-label='close'>&times;</a><span>%text%</span></div>";
       template = template.replace('%text%', text || '');
       template = template.replace('%class%', alertClass || 'info');
+      return template;
+    },
+
+    makeToast: function(text, alertClass) {
+      var template = this.buildToastHtml(text, alertClass);
       $('#toastAlert').remove();
       $('body').append(template);
       $('#toastAlert').fadeOut(4500);
