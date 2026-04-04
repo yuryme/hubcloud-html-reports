@@ -135,6 +135,184 @@
     return normalizedDate + (isEndOfDay ? ' 23:59:59' : ' 00:00:00');
   }
 
+  function getStandardPeriodModes() {
+    return [
+      { key: 'day', label: 'День' },
+      { key: 'month', label: 'Месяц' },
+      { key: 'quarter', label: 'Квартал' },
+      { key: 'year', label: 'Год' },
+      { key: 'custom', label: 'Произвольный' },
+      { key: 'unlimited', label: 'Без ограничения' }
+    ];
+  }
+
+  function toIsoDate(date) {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleDateString('en-CA');
+  }
+
+  function createDateFromIso(value) {
+    var normalizedDate = normalizeDateValue(value);
+    return normalizedDate ? new Date(normalizedDate + 'T00:00:00') : null;
+  }
+
+  function addMonths(date, delta) {
+    var result = new Date(date.getTime());
+    result.setDate(1);
+    result.setMonth(result.getMonth() + delta);
+    return result;
+  }
+
+  function addYears(date, delta) {
+    var result = new Date(date.getTime());
+    result.setDate(1);
+    result.setFullYear(result.getFullYear() + delta);
+    return result;
+  }
+
+  function getMonthLabel(date) {
+    return date.toLocaleDateString('ru-RU', {
+      month: 'long',
+      year: 'numeric'
+    }).replace(/^./, function(char) { return char.toUpperCase(); });
+  }
+
+  function getQuarterNumber(date) {
+    return Math.floor(date.getMonth() / 3) + 1;
+  }
+
+  function getQuarterStart(date) {
+    return new Date(date.getFullYear(), Math.floor(date.getMonth() / 3) * 3, 1);
+  }
+
+  function getQuarterEnd(date) {
+    return new Date(date.getFullYear(), Math.floor(date.getMonth() / 3) * 3 + 3, 0);
+  }
+
+  function getPeriodAnchorDate(periodState) {
+    var anchor = normalizeDateValue(periodState && periodState.periodAnchor);
+    return anchor ? new Date(anchor + 'T00:00:00') : new Date();
+  }
+
+  function buildStandardPeriodState(queryParameters) {
+    var normalizedQuery = queryParameters || {};
+    var anchor = normalizeDateValue(normalizedQuery.date || normalizedQuery.dateStart || new Date());
+    var mode = String(normalizedQuery.periodMode || normalizedQuery.period || 'day').toLowerCase();
+    var allowedModes = ['day', 'month', 'quarter', 'year', 'custom', 'unlimited'];
+    if (allowedModes.indexOf(mode) < 0) {
+      mode = 'day';
+    }
+
+    return {
+      periodMode: mode,
+      periodAnchor: anchor,
+      customDateStart: anchor,
+      customDateFinish: normalizeDateValue(normalizedQuery.dateFinish || normalizedQuery.dateStart || anchor),
+      showPeriodMenu: false,
+      periodModes: getStandardPeriodModes()
+    };
+  }
+
+  function getPeriodRange(periodState) {
+    var state = periodState || {};
+    var anchor = getPeriodAnchorDate(state);
+    var start;
+    var end;
+
+    if (state.periodMode === 'unlimited') {
+      return { start: '', finish: '' };
+    }
+
+    if (state.periodMode === 'custom') {
+      return {
+        start: normalizeDateValue(state.customDateStart),
+        finish: normalizeDateValue(state.customDateFinish || state.customDateStart)
+      };
+    }
+
+    if (state.periodMode === 'month') {
+      start = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+      end = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+    } else if (state.periodMode === 'quarter') {
+      start = getQuarterStart(anchor);
+      end = getQuarterEnd(anchor);
+    } else if (state.periodMode === 'year') {
+      start = new Date(anchor.getFullYear(), 0, 1);
+      end = new Date(anchor.getFullYear(), 11, 31);
+    } else {
+      start = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+      end = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+    }
+
+    return {
+      start: toIsoDate(start),
+      finish: toIsoDate(end)
+    };
+  }
+
+  function formatPeriodLabel(periodState) {
+    var state = periodState || {};
+    var range = getPeriodRange(state);
+    var anchor = getPeriodAnchorDate(state);
+
+    if (state.periodMode === 'unlimited') {
+      return 'Без ограничения';
+    }
+    if (state.periodMode === 'custom') {
+      if (!range.start || !range.finish) {
+        return 'Произвольный';
+      }
+      return formatDateLabel(range.start) + '-' + formatDateLabel(range.finish);
+    }
+    if (state.periodMode === 'month') {
+      return getMonthLabel(anchor);
+    }
+    if (state.periodMode === 'quarter') {
+      return getQuarterNumber(anchor) + ' квартал ' + anchor.getFullYear();
+    }
+    if (state.periodMode === 'year') {
+      return String(anchor.getFullYear());
+    }
+    return formatDateLabel(range.start);
+  }
+
+  function canShiftPeriod(periodState) {
+    var state = periodState || {};
+    return state.periodMode !== 'custom' && state.periodMode !== 'unlimited';
+  }
+
+  function shiftPeriodState(periodState, delta) {
+    var state = Object.assign({}, periodState || {});
+    if (!canShiftPeriod(state)) {
+      return state;
+    }
+
+    var anchor = getPeriodAnchorDate(state);
+    if (state.periodMode === 'month') {
+      anchor = addMonths(anchor, delta);
+    } else if (state.periodMode === 'quarter') {
+      anchor = addMonths(anchor, delta * 3);
+    } else if (state.periodMode === 'year') {
+      anchor = addYears(anchor, delta);
+    } else {
+      anchor.setDate(anchor.getDate() + delta);
+    }
+
+    state.periodAnchor = toIsoDate(anchor);
+    return state;
+  }
+
+  function formatDateLabel(value) {
+    var normalizedDate = normalizeDateValue(value);
+    if (!normalizedDate) {
+      return '';
+    }
+    var parts = normalizedDate.split('-');
+    return parts[2] + '.' + parts[1] + '.' + parts[0];
+  }
+
   function normalizeOptionList(items) {
     var normalized = [];
 
@@ -291,7 +469,14 @@
     normalizeSingleParameter: normalizeSingleParameter,
     normalizeParameterObject: normalizeParameterObject,
     normalizeDateValue: normalizeDateValue,
+    formatDateLabel: formatDateLabel,
     toPeriodBoundary: toPeriodBoundary,
+    getStandardPeriodModes: getStandardPeriodModes,
+    buildStandardPeriodState: buildStandardPeriodState,
+    getPeriodRange: getPeriodRange,
+    formatPeriodLabel: formatPeriodLabel,
+    canShiftPeriod: canShiftPeriod,
+    shiftPeriodState: shiftPeriodState,
     normalizeOptionList: normalizeOptionList,
     formatDslLiteral: formatDslLiteral,
     sanitizeDslNumericLiterals: sanitizeDslNumericLiterals,

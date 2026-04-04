@@ -18,18 +18,53 @@
             <button class="btn btn-default" v-on:click="printReport">Печать</button>
           </div>
 
-          <div class="period-cluster">
-            <button type="button" class="period-nav-btn" v-on:click="shiftPeriod(-1)">&#x2039;</button>
-            <div class="toolbar-cell">
-              <label class="toolbar-label">Дата с</label>
-              <input type="date" class="form-control" v-model="period_from">
+          <div class="period-cluster" ref="periodMenuShell">
+            <button
+              type="button"
+              class="period-nav-btn"
+              :disabled="!canShiftPeriod"
+              v-on:click="shiftPeriod(-1)">
+              &#x2039;
+            </button>
+
+            <div class="period-picker">
+              <button type="button" class="period-toggle" v-on:click.stop="togglePeriodMenu">
+                <span v-text="periodDisplayLabel"></span>
+                <span class="glyphicon glyphicon-chevron-down"></span>
+              </button>
+
+              <div v-if="showPeriodMenu" class="period-menu">
+                <button
+                  v-for="mode in periodModes"
+                  :key="mode.key"
+                  type="button"
+                  class="period-option"
+                  :class="{ 'is-active': periodMode === mode.key }"
+                  v-on:click="selectPeriodMode(mode.key)">
+                  <span v-text="mode.label"></span>
+                </button>
+
+                <div v-if="periodMode === 'custom'" class="custom-period-panel">
+                  <div class="custom-period-row">
+                    <input type="date" class="form-control" v-model="customDateStart">
+                  </div>
+                  <div class="custom-period-row">
+                    <input type="date" class="form-control" v-model="customDateFinish">
+                  </div>
+                  <div class="custom-period-actions">
+                    <button type="button" class="btn btn-primary btn-xs" v-on:click="applyCustomPeriod">OK</button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="period-dash">-</div>
-            <div class="toolbar-cell">
-              <label class="toolbar-label">Дата по</label>
-              <input type="date" class="form-control" v-model="period_to">
-            </div>
-            <button type="button" class="period-nav-btn" v-on:click="shiftPeriod(1)">&#x203A;</button>
+
+            <button
+              type="button"
+              class="period-nav-btn"
+              :disabled="!canShiftPeriod"
+              v-on:click="shiftPeriod(1)">
+              &#x203A;
+            </button>
           </div>
         </div>
 
@@ -66,7 +101,8 @@
           </div>
           <div class="section-body">
             <div class="report-table-scroll">
-              <table class="table table-sm report-table">
+              <div class="report-table-inner">
+                <table class="table table-sm report-table">
                 <colgroup>
                   <col class="report-col-rownum">
                   <col class="report-col-name">
@@ -102,7 +138,8 @@
                     </td>
                   </tr>
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
           </div>
         </div>

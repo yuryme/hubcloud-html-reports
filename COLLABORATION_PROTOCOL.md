@@ -100,6 +100,19 @@ This protocol defines how we work on HubCloud report updates in this repository.
 - Any datasource logic change must be made in `DS.txt` first, then synchronized into `script.js`.
 - Agent must not reinterpret DSL expressions from `DS.txt` into custom JS-derived equivalents unless the user explicitly approved that transformation.
 
+## Datasource Escalation Rule During Report Changes (Mandatory)
+- When the user requests a report change, agent must first try to solve it at the presentation/runtime layer:
+  - `index.html`
+  - `hc-report.css`
+  - `script.js`
+- If the requested change cannot be completed correctly without changing datasource logic, agent must explicitly say that datasource change is required.
+- In that case, agent may prepare a proposed new datasource expression, but must stop before внедрение.
+- Agent must not silently apply a newly proposed datasource into the working report or into the HC-ready `script.js`.
+- The user must explicitly review and approve the proposed datasource before agent may:
+  - update root `DS.txt`,
+  - synchronize report-local `DS.txt`,
+  - rebuild report-local `script.js`.
+
 ## DSL Literal Preservation Rule (Mandatory)
 - If a DSL expression already defines its own date/math semantics, preserve it literally.
 - Example: expressions like `&dateStart.EndDay().AddDays(-1)` must not be silently replaced with custom JS-calculated values unless the user explicitly requested that refactor.

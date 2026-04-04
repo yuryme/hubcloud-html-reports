@@ -17,6 +17,64 @@ This repository now acts as a reusable technical template for:
 - `sandbox.html`: local harness for parity testing.
 - `mock-data.json`: local data source for fast iteration.
 
+## Standard Period Control
+The default skeleton for new reports should include the standard period picker.
+
+The standard picker UI contains:
+- period navigation arrows,
+- a dropdown with modes:
+  - `День`
+  - `Месяц`
+  - `Квартал`
+  - `Год`
+  - `Произвольный`
+  - `Без ограничения`
+- custom range inputs with `OK` for `Произвольный`.
+
+The base starter files should assume this control by default:
+- `templates/base/index.html`
+- `templates/base/hc-report.css`
+- `core/script.core.js`
+
+When a new report is created in `Skeleton Build Mode`, the agent should start from this standard period control unless the user explicitly asks for another date-selection model.
+
+Expected runtime contract for the standard period picker:
+- state:
+  - `periodMode`
+  - `periodAnchor`
+  - `customDateStart`
+  - `customDateFinish`
+  - `showPeriodMenu`
+- computed/display:
+  - `periodDisplayLabel`
+  - `canShiftPeriod`
+- methods:
+  - `togglePeriodMenu()`
+  - `selectPeriodMode()`
+  - `applyCustomPeriod()`
+  - `shiftPeriod()`
+  - `getPeriodRange()`
+  - `formatPeriodLabel()`
+  - `buildDatasourceTokenMap()`
+
+Reusable helper functions for this control should live in:
+- `core/script.core.js`
+
+Expected shared helper API:
+- `getStandardPeriodModes()`
+- `buildStandardPeriodState()`
+- `getPeriodRange()`
+- `formatPeriodLabel()`
+- `canShiftPeriod()`
+- `shiftPeriodState()`
+- `formatDateLabel()`
+
+Behavior contract:
+- arrows shift the active period;
+- `Произвольный` uses explicit start/end dates;
+- `Без ограничения` must disable period narrowing in datasource logic;
+- the same period behavior should be preserved in sandbox and in HubCloud.
+
 ## Wide Table Layout Rule
 - For wide matrix or pivot reports, do not reduce visual width through `scale`, `zoom`, or similar transform tricks as the primary solution.
 - First build page layout through normal containers and columns:
@@ -24,6 +82,11 @@ This repository now acts as a reusable technical template for:
   - left content column for the table area,
   - right column for filters/settings.
 - The table must live inside the left content column, and page width must be controlled by layout before aggressive table compression is attempted.
+- For reliable scrolling, use a dedicated table viewport container:
+  - outer scroll container with `overflow: auto`,
+  - inner width-holder with `min-width: max-content`,
+  - table with `width: max-content` and `min-width: 100%`.
+- This pattern should be preferred over mixing multiple competing scroll containers.
 - Only after container/column layout is correct may the agent tune:
   - sticky first column width,
   - data column widths,

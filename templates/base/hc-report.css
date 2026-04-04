@@ -80,8 +80,8 @@
   gap: 8px;
 }
 
-.toolbar-cell {
-  min-width: 150px;
+.period-cluster {
+  position: relative;
 }
 
 .toolbar-label {
@@ -102,9 +102,87 @@
   padding: 0;
 }
 
-.period-dash {
-  color: #64748b;
-  font-weight: 700;
+.period-nav-btn[disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.period-picker {
+  position: relative;
+}
+
+.period-toggle {
+  min-width: 190px;
+  border: 0;
+  background: transparent;
+  color: var(--factory-accent);
+  font-size: 16px;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 10px;
+}
+
+.period-toggle .glyphicon {
+  font-size: 11px;
+}
+
+.period-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 164px;
+  padding: 8px 8px 10px;
+  background: #fff;
+  border: 1px solid var(--factory-border);
+  box-shadow: 0 10px 22px rgba(27, 42, 64, 0.12);
+  z-index: 30;
+}
+
+.period-option {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #48638d;
+  text-align: center;
+  padding: 2px 8px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.period-option:hover,
+.period-option.is-active {
+  color: var(--factory-accent);
+  text-decoration: underline;
+}
+
+.custom-period-panel {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--factory-border);
+}
+
+.custom-period-row + .custom-period-row {
+  margin-top: 4px;
+}
+
+.custom-period-row .form-control {
+  height: 28px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.custom-period-actions {
+  margin-top: 6px;
+  text-align: center;
+}
+
+.toolbar-cell {
+  min-width: 150px;
 }
 
 .filter-panel {
@@ -165,12 +243,38 @@
 
 .report-table-scroll {
   max-height: calc(100vh - 250px);
-  overflow-y: auto;
-  overflow-x: auto;
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+  scrollbar-color: #8ea6c8 #edf2f8;
+}
+
+.report-table-scroll::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.report-table-scroll::-webkit-scrollbar-track {
+  background: #edf2f8;
+}
+
+.report-table-scroll::-webkit-scrollbar-thumb {
+  background: #aebdd4;
+  border-radius: 999px;
+  border: 2px solid #edf2f8;
+}
+
+.report-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #8ea6c8;
+}
+
+.report-table-inner {
+  min-width: max-content;
 }
 
 .report-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   table-layout: fixed;
   margin-bottom: 0;
 }

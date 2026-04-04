@@ -211,6 +211,15 @@ Exception:
 - then `DS.txt` becomes an active source for that task,
 - and agent must explicitly state that datasource synchronization is part of the modernization scope.
 
+Datasource escalation rule during report changes:
+- when a requested report change can be implemented at UI/runtime level, agent must keep the work inside:
+  - `index.html`
+  - `hc-report.css`
+  - `script.js`
+- if the change requires datasource modification, agent must explicitly escalate that fact;
+- agent may propose a revised datasource, but must stop and request user review before using it in the working report;
+- datasource changes are not considered approved until the user explicitly confirms them.
+
 Later, source of truth becomes:
 - cleaned project files,
 - synchronized datasource logic,

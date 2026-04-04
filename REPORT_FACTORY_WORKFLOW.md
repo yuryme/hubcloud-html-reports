@@ -91,6 +91,19 @@ Allowed changes:
 - table section,
 - action buttons.
 
+Default rule for new reports:
+- use the standard period picker from the base template unless the user explicitly requests another date control;
+- the standard picker includes:
+  - `День`
+  - `Месяц`
+  - `Квартал`
+  - `Год`
+  - `Произвольный`
+  - `Без ограничения`
+- left and right arrows must shift the current period;
+- `Произвольный` must provide two dates and an explicit `OK` action.
+- shared period helper logic should be taken from `core/script.core.js`, not re-invented from scratch for each report.
+
 ### 2. hc-report.css
 Create from:
 - `templates/base/hc-report.css`
@@ -108,6 +121,10 @@ Special rule for wide matrix/pivot reports:
 - first define page layout with a controlled container and explicit columns:
   - left table/content area,
   - right filter/settings area;
+- use the standard scroll pattern for wide tables:
+  - one table viewport container with `overflow: auto`,
+  - one inner width-holder with `min-width: max-content`,
+  - one table with `width: max-content` and `min-width: 100%`;
 - only after the page grid is correct may the agent compress the table itself through widths, typography, and wrapping.
 
 ### 3. report.manifest.json
@@ -132,6 +149,21 @@ It must include:
 - columns,
 - rowMap,
 - embedded fallback datasource expression copied from the current root `DS.txt`.
+
+If the report uses the standard period picker, the report configuration must be compatible with these runtime fields:
+- `periodMode`
+- `periodAnchor`
+- `customDateStart`
+- `customDateFinish`
+- `showPeriodMenu`
+
+And these runtime methods:
+- `formatPeriodLabel()`
+- `getPeriodRange()`
+- `shiftPeriod()`
+- `selectPeriodMode()`
+- `applyCustomPeriod()`
+- `buildDatasourceTokenMap()`
 
 ### 5. DS.txt
 Create by copying the current root `DS.txt`.
@@ -171,6 +203,12 @@ It must contain:
 - report-local embedded fallback config,
 - report-local fallback datasource expression,
 - compatibility with the report-local `manifest/default` files.
+
+For reports with the standard period picker, `script.js` must also:
+- support all standard period modes,
+- convert the selected mode into datasource period boundaries,
+- remove or neutralize period filtering for `Без ограничения`,
+- keep the same period behavior in sandbox and in HubCloud runtime.
 
 ## Sandbox Verification
 Before declaring the new report ready:
