@@ -1,0 +1,4 @@
+interface:
+  display_name: "HubCloud Report Style"
+  short_description: "Enforce the canonical HubCloud report style"
+  default_prompt: "Use $hubcloud-report-style to keep report UI aligned with the project's canonical design."
