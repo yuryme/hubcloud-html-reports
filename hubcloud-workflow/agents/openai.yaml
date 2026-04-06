@@ -1,0 +1,4 @@
+interface:
+  display_name: "HubCloud Workflow"
+  short_description: "Guide the sandbox-to-HubCloud delivery workflow"
+  default_prompt: "Use $hubcloud-workflow to keep local report work and HubCloud transfer aligned."
