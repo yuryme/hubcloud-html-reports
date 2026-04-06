@@ -1,0 +1,4 @@
+interface:
+  display_name: "HubCloud Filter Pattern"
+  short_description: "Guide HubCloud dropdown filter integration"
+  default_prompt: "Use $hubcloud-filter-pattern to add or fix catalog-backed report filters."
