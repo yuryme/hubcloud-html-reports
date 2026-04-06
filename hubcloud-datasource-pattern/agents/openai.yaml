@@ -1,0 +1,4 @@
+interface:
+  display_name: "HubCloud Datasource Pattern"
+  short_description: "Guide staged HubCloud datasource integration"
+  default_prompt: "Use $hubcloud-datasource-pattern to move a report from mock data to HubCloud datasource mode."
