@@ -13,6 +13,7 @@ Read additional documents only when needed:
 - `REPORT_FACTORY_WORKFLOW.md` when producing a new report in `Skeleton Build Mode`
 - `LOCAL_DEV.md` for local sandbox work
 - `HUBCLOUD_COMPAT.md` for HubCloud compatibility or transfer issues
+- `SKILLS_OVERVIEW.md` for the repository skill map and when to use each skill
 
 ## Mandatory Start Behavior
 Before making any file changes:
