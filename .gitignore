@@ -11,3 +11,6 @@ Microsoft/Windows/PowerShell/ModuleAnalysisCache
 # Optional local backups
 *.bak
 *.tmp
+
+# Local document exports
+*.docx
