@@ -1,0 +1,3 @@
+operation.кп |  заказ_договор (&orderId) | Select (id, date, заказ_договор, заказ_договор_title, коммент_директор) | Gettitle()
+| AddColumn(dateStart, DateTime, &dateStart) | AddColumn(dateFinish_, DateTime, &dateFinish) | ComputeFunction(dateFinish, dateFinish_.EndDay())
+| Having (date>=dateStart AND date<=dateFinish)

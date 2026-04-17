@@ -1,0 +1,32 @@
+﻿{
+  "reportId": "ispolnenie-zayavok",
+  "reportTitle": "Отчет: Исполнение заявок",
+  "dsFile": "DS.txt",
+  "mockDataFile": "mock-data.json",
+  "templateHint": "pivot-request-execution",
+  "filters": [
+    {
+      "key": "клиент",
+      "dsKey": "клиент",
+      "title": "Клиент",
+      "multiple": false,
+      "aliases": ["клиент", "partner", "$клиент", "$partner"],
+      "optionsExpression": "catalog.partner | свойвнешний (2) | тип_клиента(3) | Select (id, title) | Gettitle()"
+    }
+  ],
+  "columns": [
+    { "key": "partner_title", "label": "Клиент", "type": "text", "alignClass": "text-left" }
+  ],
+  "rowMap": {
+    "partner": ["partner", "клиент"],
+    "partner_title": ["partner_title", "partner_name", "клиент_title"],
+    "product": ["номенклатура", "product"],
+    "product_title": ["номенклатура_title", "product_title", "name"],
+    "qty": ["колво", "qty", "количество"]
+  },
+  "layout": {
+    "rows": ["Клиент"],
+    "columns": ["Номенклатура"],
+    "values": ["Кол-во"]
+  }
+}

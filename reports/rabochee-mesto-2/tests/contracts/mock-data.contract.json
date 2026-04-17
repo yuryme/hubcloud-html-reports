@@ -1,0 +1,43 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RM2 Mock Data Contract",
+  "type": "object",
+  "required": ["isOK", "rows", "kpiRows"],
+  "properties": {
+    "isOK": { "type": "boolean" },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "date", "amount"],
+        "properties": {
+          "id": { "type": ["string", "number"] },
+          "date": { "type": "string" },
+          "amount": { "type": ["string", "number"] },
+          "budgetitem": { "type": ["string", "number", "null"] },
+          "budgetitem_title": { "type": ["string", "null"] },
+          "template": { "type": ["string", "number", "null"] },
+          "registrator": { "type": ["string", "number", "null"] },
+          "коммент_директор": { "type": ["string", "null"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "kpiRows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "date"],
+        "properties": {
+          "id": { "type": ["string", "number"] },
+          "date": { "type": "string" },
+          "заказ_договор": { "type": ["string", "number", "null"] },
+          "заказ_договор_title": { "type": ["string", "null"] },
+          "коммент_директор": { "type": ["string", "null"] }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

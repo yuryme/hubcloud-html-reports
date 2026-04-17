@@ -1,0 +1,80 @@
+{
+  "reportId": "rabochee-mesto-2",
+  "reportTitle": "Рабочее место руководителя",
+  "dsFile": "DS.txt",
+  "dsFileKpi": "DS2.txt",
+  "mockDataFile": "mock-data.json",
+  "templateHint": "executive-workspace",
+  "tabs": [
+    {
+      "key": "expenses",
+      "title": "По документам"
+    },
+    {
+      "key": "kp",
+      "title": "По статьям"
+    },
+    {
+      "key": "kpi",
+      "title": "По КП"
+    }
+  ],
+  "columns": [
+    {
+      "key": "registrator_title",
+      "title": "Операция"
+    },
+    {
+      "key": "date",
+      "title": "Дата"
+    },
+    {
+      "key": "budgetitem_title",
+      "title": "Статья"
+    },
+    {
+      "key": "номер_заказа_title",
+      "title": "Номер заказа"
+    },
+    {
+      "key": "комментарий",
+      "title": "Комментарий"
+    },
+    {
+      "key": "коммент_директор",
+      "title": "Комментарий директора"
+    },
+    {
+      "key": "amount",
+      "title": "Сумма, руб",
+      "isTotal": true
+    }
+  ]
+}
+
+
+{
+  "productGroup": "sweets",
+  "products": [
+    {
+      "gtin": "142323333233",
+      "quantity": 10,
+      "serialNumberType": "OPERATOR",
+      "templateId": 66,
+      "cisType": "UNIT"
+    },
+    {
+      "gtin": "142356656656",
+      "quantity": 5,
+      "serialNumberType": "OPERATOR",
+      "templateId": 66,
+      "cisType": "UNIT"
+    }
+  ],
+  "attributes": {
+    "contactPerson": "Балашова Елена",
+    "releaseMethodType": "PRODUCTION",
+    "createMethodType": "OPERATION",
+    "productionOrderId": "10005"
+  }
+}

@@ -1,0 +1,364 @@
+<div id="root" class="bt-header bt-list">
+  <div class="page-shell">
+    <main class="content-panel">
+      <header class="report-title-card">
+        <h1 v-text="reportTitle"></h1>
+      </header>
+
+      <section class="toolbar-row" aria-label="Панель отчета">
+        <div class="toolbar-card action-toolbar">
+          <button type="button" class="primary-btn" @click="loadRows">Обновить</button>
+          <button type="button" class="secondary-btn excel-btn" @click="exportToExcel">В Excel</button>
+        </div>
+
+        <div class="toolbar-card period-toolbar">
+          <button type="button" class="period-arrow" @click="shiftPeriod(-1)" :disabled="isPeriodFilterDisabled || !canShiftPeriod">&lsaquo;</button>
+          <button type="button" class="period-inline-body" @click="togglePeriodMenu" :disabled="isPeriodFilterDisabled">
+            <span class="period-inline-label">Период</span>
+            <strong v-text="periodDisplayLabel"></strong>
+          </button>
+          <button type="button" class="period-arrow" @click="shiftPeriod(1)" :disabled="isPeriodFilterDisabled || !canShiftPeriod">&rsaquo;</button>
+
+          <div v-if="showPeriodMenu" class="period-menu">
+            <div class="period-mode-list">
+              <button
+                v-for="mode in periodModes"
+                :key="mode.key"
+                type="button"
+                class="period-mode-btn"
+                :class="{ 'is-active': periodMode === mode.key }"
+                :disabled="isPeriodFilterDisabled || mode.key === 'unlimited'"
+                @click="selectPeriodMode(mode.key)">
+                <span v-text="mode.label"></span>
+              </button>
+            </div>
+
+            <div v-if="periodMode === 'custom'" class="period-custom-grid">
+              <label class="field">
+                <span>Дата начала</span>
+                <input v-model="customDateStart" type="date" />
+              </label>
+              <label class="field">
+                <span>Дата окончания</span>
+                <input v-model="customDateFinish" type="date" />
+              </label>
+              <button type="button" class="primary-btn period-apply-btn" @click="applyCustomPeriod">Применить</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-card period-scope-toolbar" aria-label="Режим применения периода">
+          <p class="period-scope-title">Фильтр по периоду</p>
+          <label class="period-toggle">
+            <input type="checkbox" v-model="forcePeriodWithFilters" :disabled="!hasActiveFilters" />
+            <span class="period-toggle-track">
+              <span class="period-toggle-thumb"></span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="stats-grid" aria-label="Ключевые показатели">
+        <article class="stat-card accent-a">
+          <p class="stat-label">Строки</p>
+          <strong class="stat-value" v-text="activeTabRowsCount"></strong>
+          <span class="stat-meta">Записей на активной вкладке</span>
+        </article>
+        <article class="stat-card accent-b">
+          <p class="stat-label">Поступления</p>
+          <strong class="stat-value" v-text="formatTotalAmount(incomeAmount) + ' Руб.'"></strong>
+          <span class="stat-meta">Сумма по приходным документам</span>
+        </article>
+        <article class="stat-card accent-c">
+          <p class="stat-label">Выплаты</p>
+          <strong class="stat-value" v-text="formatTotalAmount(expenseAmount) + ' Руб.'"></strong>
+          <span class="stat-meta">Сумма по расходным документам</span>
+        </article>
+      </section>
+
+      <section class="table-section print-area bt-list-body">
+        <div class="table-header">
+          <div>
+            <h2 v-text="currentTabHeadline"></h2>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Переключение таблиц">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="tab-button"
+              :class="{ 'is-active': activeTab === tab.key }"
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === tab.key ? 'true' : 'false'"
+              @click="setActiveTab(tab.key)">
+              <span v-text="tab.title"></span>
+            </button>
+          </div>
+        </div>
+
+        <section v-if="activeTab === 'expenses'" class="tab-panel is-active" role="tabpanel">
+          <div class="table-scroll">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th class="index-col">#</th>
+                  <th
+                    v-for="column in currentColumns"
+                    :key="column.key"
+                    :class="{
+                      'comment-col': column.key === 'комментарий' || column.key === 'коммент_директор',
+                      'amount-col': column.key === 'amount'
+                    }"
+                    v-text="column.title"></th>
+                  <th class="spacer-col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="isWaiting">
+                  <td :colspan="currentColumns.length + 2" class="empty-cell">Загрузка данных...</td>
+                </tr>
+                <tr v-else-if="!filteredRows.length">
+                  <td :colspan="currentColumns.length + 2" class="empty-cell">Нет данных</td>
+                </tr>
+                <tr
+                  v-for="(row, index) in filteredRows"
+                  :key="row.__rowKey || index"
+                  title="Кликните, чтобы перейти в операцию"
+                  @click="handleRowClick(row)">
+                  <td class="index-col" v-text="index + 1"></td>
+                  <td
+                    v-for="column in currentColumns"
+                    :key="column.key"
+                    :class="{
+                      'comment-col': column.key === 'комментарий' || column.key === 'коммент_директор',
+                      'amount-col': column.key === 'amount'
+                    }">
+                    <template v-if="column.key === 'коммент_директор'">
+                      <div class="inline-editor" @click.stop>
+                        <button
+                          v-if="!isDirectorCommentEditing(row)"
+                          type="button"
+                          class="inline-editor-display"
+                          @click="startDirectorCommentEdit(row)">
+                          <span class="inline-editor-text" v-text="displayCell(row, column) || ' '"></span>
+                          <span class="inline-editor-icon" aria-hidden="true">✎</span>
+                        </button>
+                        <div v-else class="inline-editor-active">
+                          <input
+                            class="inline-editor-input"
+                            type="text"
+                            :value="getDirectorCommentDraft(row)"
+                            @input="updateDirectorCommentDraft(row, $event.target.value)"
+                            @keydown.enter.prevent="confirmDirectorCommentEdit(row)"
+                            @keydown.esc.prevent="cancelDirectorCommentEdit(row)" />
+                          <button
+                            type="button"
+                            class="inline-editor-action is-confirm"
+                            @click.stop="confirmDirectorCommentEdit(row)"
+                            aria-label="Подтвердить редактирование">✓</button>
+                          <button
+                            type="button"
+                            class="inline-editor-action is-cancel"
+                            @click.stop="cancelDirectorCommentEdit(row)"
+                            aria-label="Отменить редактирование">✕</button>
+                        </div>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <span v-text="displayCell(row, column)"></span>
+                    </template>
+                  </td>
+                  <td class="spacer-col"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section v-else-if="activeTab === 'kp'" class="tab-panel is-active" role="tabpanel">
+          <div class="table-scroll summary-scroll">
+            <table class="report-table summary-table summary-by-item-table">
+              <thead>
+                <tr>
+                  <th>Статья</th>
+                  <th class="amount-col">Сумма, руб</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="!summaryRows.length">
+                  <td colspan="2" class="empty-cell">Нет данных</td>
+                </tr>
+                <tr v-for="row in summaryRows" :key="row.budgetitem_title">
+                  <td v-text="row.budgetitem_title"></td>
+                  <td class="amount-col" v-text="formatTotalAmount(row.amount)"></td>
+                </tr>
+              </tbody>
+              <tfoot v-if="summaryRows.length">
+                <tr>
+                  <td class="summary-label">Итоги</td>
+                  <td class="summary-value amount-col" v-text="formatTotalAmount(summaryTotalAmount)"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+
+        <section v-else class="tab-panel is-active" role="tabpanel">
+          <div class="table-scroll summary-scroll">
+            <table class="report-table summary-table kpi-table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Номер Заказа</th>
+                  <th>Комментарий директора</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="isWaiting">
+                  <td colspan="3" class="empty-cell">Загрузка данных...</td>
+                </tr>
+                <tr v-else-if="!kpiRows.length">
+                  <td colspan="3" class="empty-cell">Нет данных</td>
+                </tr>
+                <tr v-for="(row, index) in kpiRows" :key="row.__rowKey || index">
+                  <td v-text="formatKpiDate(row)"></td>
+                  <td v-text="displayKpiOrderTitle(row)"></td>
+                  <td class="comment-col">
+                    <div class="inline-editor" @click.stop>
+                      <button
+                        v-if="!isKpiDirectorCommentEditing(row)"
+                        type="button"
+                        class="inline-editor-display"
+                        @click="startKpiDirectorCommentEdit(row)">
+                        <span class="inline-editor-text" v-text="displayKpiDirectorComment(row) || ' '"></span>
+                        <span class="inline-editor-icon" aria-hidden="true">✎</span>
+                      </button>
+                      <div v-else class="inline-editor-active">
+                        <input
+                          class="inline-editor-input kpi-inline-editor-input"
+                          type="text"
+                          :value="getKpiDirectorCommentDraft(row)"
+                          @input="updateKpiDirectorCommentDraft(row, $event.target.value)"
+                          @keydown.enter.prevent="confirmKpiDirectorCommentEdit(row)"
+                          @keydown.esc.prevent="cancelKpiDirectorCommentEdit(row)" />
+                        <button
+                          type="button"
+                          class="inline-editor-action is-confirm"
+                          @click.stop="confirmKpiDirectorCommentEdit(row)"
+                          aria-label="Подтвердить редактирование">✓</button>
+                        <button
+                          type="button"
+                          class="inline-editor-action is-cancel"
+                          @click.stop="cancelKpiDirectorCommentEdit(row)"
+                          aria-label="Отменить редактирование">✕</button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="section-heading">
+          <h2>Настройки</h2>
+        </div>
+        <section class="settings-filters">
+          <label class="settings-field">
+            <span>Номер заказа</span>
+            <select v-model="selectedOrderId">
+              <option value="">Все</option>
+              <option v-for="option in orderFilterOptions" :key="option.id" :value="option.id" v-text="option.title"></option>
+            </select>
+          </label>
+          <label class="settings-field">
+            <span>Регистратор</span>
+            <select v-model="selectedRegistratorId">
+              <option value="">Все</option>
+              <option v-for="option in registratorFilterOptions" :key="option.id" :value="option.id" v-text="option.title"></option>
+            </select>
+          </label>
+          <div class="settings-field">
+            <span>Статья</span>
+            <div class="multi-checklist">
+              <label class="multi-check-item">
+                <input
+                  type="checkbox"
+                  :checked="isAllBudgetItemsSelected"
+                  @change="toggleAllBudgetItems($event.target.checked)" />
+                <span>Все</span>
+              </label>
+              <label class="multi-check-item" v-for="option in budgetItemFilterOptions" :key="option.id">
+                <input
+                  type="checkbox"
+                  :value="option.id"
+                  :checked="isBudgetItemSelected(option.id)"
+                  @change="toggleBudgetItem(option.id, $event.target.checked)" />
+                <span v-text="option.title"></span>
+              </label>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </div>
+  <div v-if="showExcelPreview" class="excel-preview-backdrop" @click.self="closeExcelPreview">
+    <section class="excel-preview-modal" role="dialog" aria-modal="true" aria-label="Предпросмотр перед выгрузкой в Excel">
+      <header class="excel-preview-header">
+        <div>
+          <h3>Предпросмотр выгрузки</h3>
+          <p class="excel-preview-meta" v-text="'Строк: ' + excelPreviewRows.length"></p>
+        </div>
+      </header>
+
+      <div class="table-scroll excel-preview-scroll">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th class="index-col">#</th>
+              <th
+                v-for="column in excelPreviewColumns"
+                :key="'excel-preview-' + column.key"
+                :class="{
+                  'comment-col': column.key === 'комментарий' || column.key === 'коммент_директор',
+                  'amount-col': column.key === 'amount'
+                }"
+                v-text="column.title"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!excelPreviewRows.length">
+              <td :colspan="excelPreviewColumnCount" class="empty-cell">Нет данных для выгрузки</td>
+            </tr>
+            <tr v-for="(row, index) in excelPreviewRows" :key="'excel-preview-row-' + (row.__rowKey || index)">
+              <td class="index-col" v-text="index + 1"></td>
+              <td
+                v-for="column in excelPreviewColumns"
+                :key="'excel-preview-cell-' + column.key + '-' + (row.__rowKey || index)"
+                :class="{
+                  'comment-col': column.key === 'комментарий' || column.key === 'коммент_директор',
+                  'amount-col': column.key === 'amount'
+                }"
+                v-text="getExcelCellValue(row, column)"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="excel-preview-footer">
+        <button type="button" class="secondary-btn" @click="closeExcelPreview">Отмена</button>
+        <button type="button" class="primary-btn excel-preview-download-btn" :disabled="!excelPreviewRows.length" @click="confirmExcelExport">Скачать Excel</button>
+      </footer>
+    </section>
+  </div>
+  <div class="toast-stack" aria-live="polite">
+    <div v-for="toast in toasts" :key="toast.id" class="toast" :class="{ 'is-error': toast.isError }">
+      <span v-text="toast.message"></span>
+    </div>
+  </div>
+</div>

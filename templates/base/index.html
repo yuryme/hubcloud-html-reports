@@ -1,149 +1,301 @@
-﻿<div id="root" class="bt-header bt-list">
-  <div class="report-page">
-    <section class="hero-band">
-      <div class="hero-head">
-        <h2 class="hero-title">
-          <span v-text="reportTitle"></span>
-        </h2>
-        <button class="btn btn-default settings-btn" type="button">Настройки</button>
-      </div>
-    </section>
+﻿<div id="root">
+  <div class="page-shell">
+    <main class="content-panel">
+      <header class="report-title-card">
+        <p class="eyebrow">Overview</p>
+        <h1>Шаблон отчета</h1>
+        <p class="hero-copy">
+          Каркас страницы с акцентом на чистую аналитику: крупные KPI-блоки,
+          комфортная таблица, табы для разных срезов и мягкий визуальный ритм.
+        </p>
+      </header>
 
-    <section class="toolbar-card">
-      <div class="toolbar-layout">
-        <div class="toolbar-grid">
-          <div class="toolbar-actions">
-            <button class="btn btn-primary" v-on:click="loadReport">Отчет</button>
-            <button class="btn btn-success" v-on:click="exportToExcel">Excel</button>
-            <button class="btn btn-default" v-on:click="printReport">Печать</button>
+      <section class="toolbar-row" aria-label="Панель отчета">
+        <div class="toolbar-card action-toolbar">
+          <button type="button" class="primary-btn">Отчет</button>
+          <button type="button" class="secondary-btn">Экспорт</button>
+        </div>
+
+        <div class="toolbar-card period-toolbar">
+          <span class="period-arrow" aria-hidden="true">&lsaquo;</span>
+          <div class="period-inline-body">
+            <span class="period-inline-label">Период</span>
+            <strong>01.04.2026 - 30.04.2026</strong>
+          </div>
+          <span class="period-arrow" aria-hidden="true">&rsaquo;</span>
+        </div>
+      </section>
+
+      <section class="stats-grid" aria-label="Ключевые показатели">
+        <article class="stat-card accent-a">
+          <p class="stat-label">Общая выручка</p>
+          <strong class="stat-value">12.4 млн</strong>
+          <span class="stat-meta">+8.2% к прошлому периоду</span>
+        </article>
+
+        <article class="stat-card accent-b">
+          <p class="stat-label">Средний чек</p>
+          <strong class="stat-value">4 860</strong>
+          <span class="stat-meta">+2.1% к прошлому периоду</span>
+        </article>
+
+        <article class="stat-card accent-c">
+          <p class="stat-label">Новых клиентов</p>
+          <strong class="stat-value">1 284</strong>
+          <span class="stat-meta">72 за последние 24 часа</span>
+        </article>
+
+        <article class="stat-card accent-d">
+          <p class="stat-label">Конверсия</p>
+          <strong class="stat-value">18.7%</strong>
+          <span class="stat-meta">Стабильный рост 3 недели</span>
+        </article>
+      </section>
+
+      <section class="table-section">
+        <div class="table-header">
+          <div>
+            <p class="eyebrow">Data Views</p>
+            <h2>Таблицы отчета</h2>
           </div>
 
-          <div class="period-cluster" ref="periodMenuShell">
-            <button
-              type="button"
-              class="period-nav-btn"
-              :disabled="!canShiftPeriod"
-              v-on:click="shiftPeriod(-1)">
-              &#x2039;
+          <div class="tabs" role="tablist" aria-label="Переключение таблиц">
+            <button class="tab-button is-active" type="button" role="tab" aria-selected="true" data-tab-target="summary">
+              Сводка
             </button>
-
-            <div class="period-picker">
-              <button type="button" class="period-toggle" v-on:click.stop="togglePeriodMenu">
-                <span v-text="periodDisplayLabel"></span>
-                <span class="glyphicon glyphicon-chevron-down"></span>
-              </button>
-
-              <div v-if="showPeriodMenu" class="period-menu">
-                <button
-                  v-for="mode in periodModes"
-                  :key="mode.key"
-                  type="button"
-                  class="period-option"
-                  :class="{ 'is-active': periodMode === mode.key }"
-                  v-on:click="selectPeriodMode(mode.key)">
-                  <span v-text="mode.label"></span>
-                </button>
-
-                <div v-if="periodMode === 'custom'" class="custom-period-panel">
-                  <div class="custom-period-row">
-                    <input type="date" class="form-control" v-model="customDateStart">
-                  </div>
-                  <div class="custom-period-row">
-                    <input type="date" class="form-control" v-model="customDateFinish">
-                  </div>
-                  <div class="custom-period-actions">
-                    <button type="button" class="btn btn-primary btn-xs" v-on:click="applyCustomPeriod">OK</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="period-nav-btn"
-              :disabled="!canShiftPeriod"
-              v-on:click="shiftPeriod(1)">
-              &#x203A;
+            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="channels">
+              Каналы
+            </button>
+            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="regions">
+              Регионы
             </button>
           </div>
         </div>
 
-        <div class="filter-panel">
-          <div class="filter-panel-title">Фильтры</div>
-          <div class="filter-grid">
-            <div class="toolbar-cell filter-cell" v-for="flt in filters" :key="flt.key">
-              <label class="toolbar-label" v-text="flt.title"></label>
-              <select
-                class="form-control filter-select"
-                :multiple="!!flt.multiple"
-                v-model="filterValues[flt.key]"
-                v-on:change="onFilterChange(flt.key)"
-              >
-                <option
-                  v-for="opt in filterOptions[flt.key] || []"
-                  :key="flt.key + '-' + opt.value"
-                  :value="opt.value"
-                  v-text="opt.title"
-                ></option>
+        <section class="tab-panel is-active" id="summary" role="tabpanel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Показатель</th>
+                  <th>План</th>
+                  <th>Факт</th>
+                  <th>Изменение</th>
+                  <th>Комментарий</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Выручка</td>
+                  <td>11.8 млн</td>
+                  <td>12.4 млн</td>
+                  <td><span class="pill up">+5.1%</span></td>
+                  <td>Рост за счет сезонной кампании</td>
+                </tr>
+                <tr>
+                  <td>Маржинальность</td>
+                  <td>22%</td>
+                  <td>23.8%</td>
+                  <td><span class="pill up">+1.8 п.п.</span></td>
+                  <td>Снижение скидочного давления</td>
+                </tr>
+                <tr>
+                  <td>Новые клиенты</td>
+                  <td>1 100</td>
+                  <td>1 284</td>
+                  <td><span class="pill up">+16.7%</span></td>
+                  <td>Сильный отклик из digital-каналов</td>
+                </tr>
+                <tr>
+                  <td>Повторные продажи</td>
+                  <td>34%</td>
+                  <td>31.5%</td>
+                  <td><span class="pill down">-2.5 п.п.</span></td>
+                  <td>Нужна реактивация части базы</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="channels" role="tabpanel" hidden>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Канал</th>
+                  <th>Лиды</th>
+                  <th>Продажи</th>
+                  <th>CR</th>
+                  <th>ROI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Контекст</td>
+                  <td>3 420</td>
+                  <td>512</td>
+                  <td>14.9%</td>
+                  <td>186%</td>
+                </tr>
+                <tr>
+                  <td>SEO</td>
+                  <td>2 105</td>
+                  <td>398</td>
+                  <td>18.9%</td>
+                  <td>241%</td>
+                </tr>
+                <tr>
+                  <td>Email</td>
+                  <td>1 280</td>
+                  <td>311</td>
+                  <td>24.3%</td>
+                  <td>274%</td>
+                </tr>
+                <tr>
+                  <td>Партнеры</td>
+                  <td>890</td>
+                  <td>144</td>
+                  <td>16.2%</td>
+                  <td>154%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="regions" role="tabpanel" hidden>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Регион</th>
+                  <th>Заказы</th>
+                  <th>Выручка</th>
+                  <th>Средний чек</th>
+                  <th>Доля</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Москва</td>
+                  <td>1 842</td>
+                  <td>5.3 млн</td>
+                  <td>5 121</td>
+                  <td>42%</td>
+                </tr>
+                <tr>
+                  <td>Санкт-Петербург</td>
+                  <td>1 114</td>
+                  <td>3.1 млн</td>
+                  <td>4 774</td>
+                  <td>25%</td>
+                </tr>
+                <tr>
+                  <td>Казань</td>
+                  <td>624</td>
+                  <td>1.6 млн</td>
+                  <td>4 508</td>
+                  <td>13%</td>
+                </tr>
+                <tr>
+                  <td>Екатеринбург</td>
+                  <td>498</td>
+                  <td>1.1 млн</td>
+                  <td>4 231</td>
+                  <td>9%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="section-heading">
+          <p class="eyebrow">Settings</p>
+          <h2>Настройки</h2>
+        </div>
+
+        <section class="settings-group">
+          <div class="settings-group-header">
+            <p class="eyebrow">Filters</p>
+            <h3>Фильтры</h3>
+          </div>
+
+          <form class="filter-grid">
+            <label class="field">
+              <span>Регион</span>
+              <select>
+                <option>Все регионы</option>
+                <option>Москва</option>
+                <option>Санкт-Петербург</option>
+                <option>Казань</option>
               </select>
-              <div class="filter-hint" v-if="flt.multiple">Можно выбрать несколько значений</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+            </label>
 
-    <div class="print-area bt-list-body">
-      <div id="table-container">
-        <div class="section-card">
-          <div class="section-head">
-            <h3 class="section-title">Данные отчета</h3>
+            <label class="field">
+              <span>Канал</span>
+              <select>
+                <option>Все каналы</option>
+                <option>Онлайн</option>
+                <option>Офлайн</option>
+                <option>Партнеры</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Категория</span>
+              <select>
+                <option>Все категории</option>
+                <option>Продажи</option>
+                <option>Операции</option>
+                <option>Маркетинг</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Статус</span>
+              <select>
+                <option>Все статусы</option>
+                <option>Активный</option>
+                <option>Новый</option>
+                <option>Завершен</option>
+              </select>
+            </label>
+          </form>
+        </section>
+
+        <section class="settings-group">
+          <div class="settings-group-header">
+            <p class="eyebrow">View</p>
+            <h3>Параметры отображения</h3>
           </div>
-          <div class="section-body">
-            <div class="report-table-scroll">
-              <div class="report-table-inner">
-                <table class="table table-sm report-table">
-                <colgroup>
-                  <col class="report-col-rownum">
-                  <col class="report-col-name">
-                  <col class="report-col-num">
-                  <col class="report-col-num">
-                  <col class="report-col-num">
-                  <col class="report-col-num">
-                  <col class="report-col-num report-col-wide">
-                  <col class="report-col-num">
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th class="report-rownum-head">#</th>
-                    <th
-                      v-for="col in columns"
-                      :key="'h-' + col.key"
-                      :class="col.alignClass || ''"
-                      v-text="col.label">
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="rows.length === 0 && !isWaiting">
-                    <td :colspan="columns.length + 1" class="report-empty">Нет данных</td>
-                  </tr>
-                  <tr v-for="(row, idx) in rows" :key="'r-' + idx">
-                    <td class="report-rownum" v-text="idx + 1"></td>
-                    <td
-                      v-for="col in columns"
-                      :key="'c-' + idx + '-' + col.key"
-                      :class="cellClass(col, row[col.key])"
-                      v-text="formatCell(col, row[col.key])">
-                    </td>
-                  </tr>
-                </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
+
+          <form class="filter-grid">
+            <label class="field">
+              <span>Группировка</span>
+              <select>
+                <option>По умолчанию</option>
+                <option>По дням</option>
+                <option>По неделям</option>
+                <option>По регионам</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Режим таблицы</span>
+              <select>
+                <option>Подробный</option>
+                <option>Краткий</option>
+                <option>Только итоги</option>
+              </select>
+            </label>
+          </form>
+        </section>
       </div>
-    </div>
+    </aside>
   </div>
 </div>

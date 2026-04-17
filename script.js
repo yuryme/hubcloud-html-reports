@@ -1,554 +1,78 @@
-﻿var CORE_BUILD = 'core-baseline-2026-04-03.1';
-var HC_DEBUG = false;
-var HC_REPORT_FALLBACK_CORE = {
-  getQueryParameters: function(search, externalParameters) {
-    var queryParameters = {};
-    if (externalParameters && typeof externalParameters === 'object') {
-      queryParameters = Object.assign({}, externalParameters);
-    }
-    var urlParams = new URLSearchParams(search || '');
-    urlParams.forEach(function(value, key) {
-      queryParameters[key] = value;
-    });
-    return queryParameters;
-  },
-
-  getFirstDefinedValue: function(source, aliases) {
-    for (var i = 0; i < aliases.length; ++i) {
-      var key = aliases[i];
-      if (
-        Object.prototype.hasOwnProperty.call(source, key) &&
-        source[key] !== null &&
-        typeof source[key] !== 'undefined' &&
-        source[key] !== ''
-      ) {
-        return source[key];
-      }
-    }
-    return null;
-  },
-
-  normalizeSingleParameter: function(value) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      var rawValue = value.id;
-      if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
-        rawValue = value.value;
-      }
-      if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
-        rawValue = value.code;
-      }
-      if (typeof rawValue === 'undefined' || rawValue === null) {
-        rawValue = '';
-      }
-
-      var rawTitle = value.title;
-      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-        rawTitle = value.label;
-      }
-      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-        rawTitle = value.text;
-      }
-      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-        rawTitle = value.name;
-      }
-      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-        rawTitle = rawValue;
-      }
-
-      return {
-        value: typeof rawValue === 'undefined' || rawValue === null ? '' : String(rawValue),
-        title: typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '' ? String(rawValue || '') : String(rawTitle)
-      };
-    }
-
-    if (value === null || typeof value === 'undefined') {
-      return { value: '', title: '' };
-    }
-
-    return { value: String(value), title: String(value) };
-  },
-
-  normalizeParameterObject: function(value, multiple) {
-    if (Array.isArray(value)) {
-      var list = [];
-      var titles = [];
-      for (var i = 0; i < value.length; ++i) {
-        var item = HC_REPORT_FALLBACK_CORE.normalizeSingleParameter(value[i]);
-        if (!item.value) {
-          continue;
-        }
-        list.push(item.value);
-        titles.push(item.title);
-      }
-      return {
-        value: multiple ? list : (list[0] || ''),
-        title: multiple ? titles : (titles[0] || '')
-      };
-    }
-
-    var normalized = HC_REPORT_FALLBACK_CORE.normalizeSingleParameter(value);
-    return {
-      value: multiple ? (normalized.value ? [normalized.value] : []) : normalized.value,
-      title: multiple ? (normalized.title ? [normalized.title] : []) : normalized.title
-    };
-  },
-
-  normalizeDateValue: function(value) {
-    if (!value) {
-      return '';
-    }
-    if (value instanceof Date && !isNaN(value.getTime())) {
-      return value.toLocaleDateString('en-CA');
-    }
-
-    var dateValue = String(value).trim();
-    var iso = dateValue.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (iso) {
-      return iso[1];
-    }
-
-    var ru = dateValue.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
-    if (ru) {
-      return ru[3] + '-' + ru[2] + '-' + ru[1];
-    }
-
-    var parsed = new Date(dateValue);
-    if (!isNaN(parsed.getTime())) {
-      return parsed.toLocaleDateString('en-CA');
-    }
-    return '';
-  },
-
-  toPeriodBoundary: function(dateValue, isEndOfDay) {
-    var normalizedDate = HC_REPORT_FALLBACK_CORE.normalizeDateValue(dateValue);
-    if (!normalizedDate) {
-      return '';
-    }
-    return normalizedDate + (isEndOfDay ? ' 23:59:59' : ' 00:00:00');
-  },
-
-  normalizeOptionList: function(items) {
-    var normalized = [];
-    for (var i = 0; i < items.length; ++i) {
-      var item = items[i] || {};
-      var rawValue = item.id;
-      if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
-        rawValue = item.value;
-      }
-      if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
-        continue;
-      }
-
-      var rawTitle = item.title;
-      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-        rawTitle = item.label;
-      }
-      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-        rawTitle = item.name;
-      }
-      if (typeof rawTitle === 'undefined' || rawTitle === null || rawTitle === '') {
-        rawTitle = rawValue;
-      }
-
-      normalized.push({ value: String(rawValue), title: String(rawTitle) });
-    }
-    return normalized;
-  },
-
-  formatDslLiteral: function(value) {
-    if (Array.isArray(value)) {
-      var parts = [];
-      for (var i = 0; i < value.length; ++i) {
-        var current = HC_REPORT_FALLBACK_CORE.formatDslLiteral(value[i]);
-        if (current !== "''") {
-          parts.push(current);
-        }
-      }
-      return parts.length > 0 ? parts.join(', ') : "''";
-    }
-
-    if (value === null || typeof value === 'undefined') {
-      return "''";
-    }
-    var str = String(value).trim();
-    if (!str) {
-      return "''";
-    }
-    if (/^-?\d+(?:\.\d+)?$/.test(str)) {
-      return str;
-    }
-    return "'" + str.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
-  },
-
-  sanitizeDslNumericLiterals: function(expression) {
-    return String(expression || '').replace(/\(\s*'(-?\d+(?:\.\d+)?)'\s*\)/g, '($1)');
-  },
-
-  findUnresolvedDsPlaceholders: function(expression) {
-    var source = String(expression || '');
-    var matches = source.match(/&[A-Za-zА-Яа-я_][A-Za-zА-Яа-я0-9_\.\(\)-]*/g) || [];
-    var unique = [];
-    for (var i = 0; i < matches.length; ++i) {
-      if (unique.indexOf(matches[i]) < 0) {
-        unique.push(matches[i]);
-      }
-    }
-    return unique;
-  },
-
-  replaceDsPlaceholders: function(expression, tokenMap) {
-    var out = String(expression || '');
-    var keys = Object.keys(tokenMap || {}).sort(function(a, b) {
-      return b.length - a.length;
-    });
-    for (var i = 0; i < keys.length; ++i) {
-      var key = keys[i];
-      out = out.split('&' + key).join(tokenMap[key]);
-    }
-    return out;
-  },
-
-  getResponseDataItems: function(responseData) {
-    return Array.isArray(responseData && responseData.data) ? responseData.data : [];
-  },
-
-  normalizeReportRows: function(items, rowNormalizer) {
-    var sourceItems = Array.isArray(items) ? items : [];
-    var out = [];
-    for (var i = 0; i < sourceItems.length; ++i) {
-      out.push(rowNormalizer(sourceItems[i] || {}));
-    }
-    return out;
-  },
-
-  rowMatchesMockFilter: function(row, filter, filterValues) {
-    var selectedValue = filterValues[filter.key];
-    var rowValue = row && typeof row[filter.key] !== 'undefined' && row[filter.key] !== null
-      ? String(row[filter.key])
-      : '';
-
-    if (filter.multiple) {
-      if (!Array.isArray(selectedValue) || selectedValue.length === 0) {
-        return true;
-      }
-      return selectedValue.indexOf(rowValue) >= 0;
-    }
-
-    if (selectedValue === null || typeof selectedValue === 'undefined' || String(selectedValue) === '') {
-      return true;
-    }
-
-    return String(selectedValue) === rowValue;
-  },
-
-  applyMockFilters: function(rows, filters, filterValues) {
-    var sourceRows = Array.isArray(rows) ? rows : [];
-    var filteredRows = [];
-
-    for (var i = 0; i < sourceRows.length; ++i) {
-      var row = sourceRows[i] || {};
-      var isMatch = true;
-
-      for (var j = 0; j < filters.length; ++j) {
-        if (!HC_REPORT_FALLBACK_CORE.rowMatchesMockFilter(row, filters[j], filterValues)) {
-          isMatch = false;
-          break;
-        }
-      }
-
-      if (isMatch) {
-        filteredRows.push(row);
-      }
-    }
-
-    return filteredRows;
-  }
-};
-var HC_REPORT_CORE_API = window.HC_REPORT_CORE || HC_REPORT_FALLBACK_CORE;
-
-// Core contract:
-// Keep generic runtime, datasource transport, mock/live switching,
-// filter state wiring, row normalization pipeline, and load/error helpers stable.
-// Customize only report-specific config: title, filters, columns,
-// datasource expression, and datasource-to-row field mapping.
-
-var HC_REPORT_MANIFEST = window.HC_REPORT_MANIFEST || null;
-var HC_REPORT_DS_TEXT = window.HC_REPORT_DS_TEXT || null;
-var HC_REPORT_EMBEDDED_FALLBACK_CONFIG = {
-  reportTitle: 'Отчет: Склад Розничный',
-  mockDataFile: 'mock-data.json',
-  filters: [
-    {
-      key: 'склад',
-      dsKey: 'склад',
-      title: 'Склад*',
-      multiple: true,
-      aliases: ['склад', 'warehouse', '$склад', '$warehouse'],
-      optionsExpression: 'catalog.склад | Select(id, title)'
-    },
-    {
-      key: 'группа',
-      dsKey: 'группа',
-      title: 'Группа',
-      multiple: false,
-      aliases: ['группа', 'group', '$группа', '$group'],
-      optionsExpression: 'catalog.группа | Select (id,title)'
-    }
-  ],
-  columns: [
-    { key: 'номенклатура', label: 'Номенклатура', type: 'text', alignClass: 'text-left' },
-    { key: 'остаток_на_начало', label: 'Остаток на начало', type: 'number', alignClass: 'text-right' },
-    { key: 'приход', label: 'Приход', type: 'number', alignClass: 'text-right' },
-    { key: 'расход', label: 'Расход', type: 'number', alignClass: 'text-right' },
-    { key: 'возврат', label: 'Возврат', type: 'number', alignClass: 'text-right' },
-    { key: 'инвентаризация', label: 'Инвентаризация', type: 'number', alignClass: 'text-right' },
-    { key: 'остаток_на_конец', label: 'Остаток на конец', type: 'number', alignClass: 'text-right' }
-  ],
-  rowMap: {
-    номенклатура: ['номенклатура_title', 'item_name', 'name'],
-    остаток_на_начало: ['на_начало', 'opening_balance'],
-    приход: ['приход', 'incoming'],
-    расход: ['расход', 'outgoing'],
-    возврат: ['возврат', 'return_qty'],
-    инвентаризация: ['инвентаризация', 'inventory_qty'],
-    остаток_на_конец: ['на_конец', 'closing_balance']
-  },
-  datasourceExpression: [
-    'catalog.номенклатура | Select (id as номенклатура, title as номенклатура_title, группа) | Gettitle() as t1;',
-    '',
-    'движение_ном | склад (&склад) | Period(,&dateStart.EndDay().AddDays(-1)) | GroupBy(номенклатура, колво as на_начало_) as на_начало;',
-    'движение_ном | склад (&склад) | операция (11) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as приход_, операция) | GroupBy (номенклатура, приход_, операция) as приход;',
-    'движение_ном | склад (&склад) | операция (14) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as расход_, операция) | GroupBy (номенклатура, расход_, операция) as расход;',
-    'движение_ном | склад (&склад) | операция (15) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as возврат_, операция) | GroupBy (номенклатура, возврат_, операция) as возврат;',
-    'движение_ном | склад (&склад) | операция (10) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as инвентаризация_, операция) | GroupBy (номенклатура, инвентаризация_, операция) as инвентаризация;',
-    '',
-    'TempTable.на_начало | FullJoinAuto(приход, приход.номенклатура =номенклатура) | FullJoinAuto(расход, расход.номенклатура =номенклатура) | FullJoinAuto(возврат, возврат.номенклатура =номенклатура)',
-    '| FullJoinAuto(инвентаризация, инвентаризация.номенклатура =номенклатура)',
-    '',
-    '| AddColumn (x, number, 0) | Coalesce (приход, приход_, x) | Coalesce (расход__, расход_, x) | Coalesce (на_начало, на_начало_, x) | Coalesce (возврат__, возврат_, x) | Coalesce (инвентаризация, инвентаризация_, x)',
-    '| Compute(расход, расход__ * -1) | Compute(возврат, возврат__ * -1)',
-    '| Compute(на_конец, на_начало + приход - расход - возврат + инвентаризация) | DeleteColumn (на_начало_, приход_, расход_, расход__, возврат_, возврат__, инвентаризация_, x)',
-    '| LeftJoinAuto(t1, t1.номенклатура =номенклатура) | группа (&группа)',
-    '| Compute(x, на_начало*на_начало+приход*приход+расход*расход+на_конец*на_конец+возврат*возврат+инвентаризация*инвентаризация) | Having (x>0) | OrderBy (номенклатура_title)'
-  ].join('\n')
-};
-
-function buildMergedReportConfig(baseConfig, overrideConfig) {
-  var base = baseConfig || {};
-  var override = overrideConfig || {};
-  return {
-    reportTitle: override.reportTitle || base.reportTitle || '',
-    mockDataFile: override.mockDataFile || base.mockDataFile || 'mock-data.json',
-    filters: Array.isArray(override.filters) && override.filters.length > 0
-      ? override.filters
-      : (Array.isArray(base.filters) ? base.filters : []),
-    columns: Array.isArray(override.columns) && override.columns.length > 0
-      ? override.columns
-      : (Array.isArray(base.columns) ? base.columns : []),
-    rowMap: override.rowMap || base.rowMap || {},
-    datasourceExpression: override.datasourceExpression || base.datasourceExpression || ''
-  };
-}
-
-var HC_REPORT_DEFAULT_CONFIG = buildMergedReportConfig(
-  HC_REPORT_EMBEDDED_FALLBACK_CONFIG,
-  window.HC_REPORT_DEFAULT_CONFIG || null
-);
-var HC_REPORT_CONFIG = buildMergedReportConfig(HC_REPORT_DEFAULT_CONFIG, HC_REPORT_MANIFEST);
-
-function buildReportAssetUrl(fileName) {
-  return './' + String(fileName || '');
-}
-
-function buildInitialFilterValues(filters) {
-  var state = {};
-  for (var i = 0; i < filters.length; ++i) {
-    state[filters[i].key] = filters[i].multiple ? [] : '';
-  }
-  return state;
-}
-
-function buildInitialFilterTitles(filters) {
-  var state = {};
-  for (var i = 0; i < filters.length; ++i) {
-    state[filters[i].key] = filters[i].multiple ? [] : '';
-  }
-  return state;
-}
-
-function buildInitialFilterOptions(filters) {
-  var state = {};
-  for (var i = 0; i < filters.length; ++i) {
-    state[filters[i].key] = [];
-  }
-  return state;
-}
-
-var vueApp = new Vue({
+﻿var vueApp = new Vue({
   el: '#root',
   data: {
-    // Report-specific config: title and visible report identity.
-    reportTitle: HC_REPORT_CONFIG.reportTitle,
-    buildVersion: CORE_BUILD,
     isWaiting: false,
     dataSourceMode: 'hubcloud',
-    mockDataUrl: buildReportAssetUrl(HC_REPORT_CONFIG.mockDataFile),
-
-    period_from: new Date().toLocaleDateString('en-CA'),
-    period_to: new Date().toLocaleDateString('en-CA'),
-    dateStart: '',
-    dateFinish: '',
-
-    // Report-specific config: filter definitions for the current report.
-    filters: HC_REPORT_CONFIG.filters,
-
-    filterValues: buildInitialFilterValues(HC_REPORT_CONFIG.filters),
-    filterTitles: buildInitialFilterTitles(HC_REPORT_CONFIG.filters),
-    filterOptions: buildInitialFilterOptions(HC_REPORT_CONFIG.filters),
-
-    // Report-specific config: visible table columns for the current report.
-    columns: HC_REPORT_CONFIG.columns,
-    rows: []
+    mockDataUrl: './mock-data.json',
+    rawRows: [],
+    fullDisplayRows: [],
+    displayRows: [],
+    showDoughModal: false,
+    isTableHeaderHovered: false,
+    selectedDoughName: ''
   },
   methods: {
-    // Runtime and diagnostics
-    debugLog: function(tag, payload) {
-      if (!HC_DEBUG || typeof console === 'undefined' || !console.log) {
-        return;
-      }
-      if (typeof payload === 'undefined') {
-        console.log('[HC-DEBUG] ' + tag);
-      } else {
-        console.log('[HC-DEBUG] ' + tag, payload);
-      }
-    },
-
     getQueryParameters: function() {
-      return HC_REPORT_CORE_API.getQueryParameters(window.location.search, window.HC_QUERY_PARAMETERS);
-    },
+      var queryParameters = {};
+      var externalParameters = window.HC_QUERY_PARAMETERS;
 
-    // Parameter normalization
-    getFirstDefinedValue: function(source, aliases) {
-      return HC_REPORT_CORE_API.getFirstDefinedValue(source, aliases);
-    },
-
-    normalizeSingleParameter: function(value) {
-      return HC_REPORT_CORE_API.normalizeSingleParameter(value);
-    },
-
-    normalizeParameterObject: function(value, multiple) {
-      return HC_REPORT_CORE_API.normalizeParameterObject(value, multiple);
-    },
-
-    initializeFilterStateFromQuery: function(filter, queryParameters) {
-      var aliases = filter.aliases || [filter.key];
-      var rawValue = this.getFirstDefinedValue(queryParameters, aliases);
-      var normalized = this.normalizeParameterObject(rawValue, !!filter.multiple);
-
-      this.filterValues[filter.key] = normalized.value;
-      this.filterTitles[filter.key] = normalized.title;
-      this.filterOptions[filter.key] = [];
-    },
-
-    normalizeDateValue: function(value) {
-      return HC_REPORT_CORE_API.normalizeDateValue(value);
-    },
-
-    // Period controls
-    shiftPeriod: function(days) {
-      var fromDate = new Date(this.normalizeDateValue(this.period_from) + 'T00:00:00');
-      var toDate = new Date(this.normalizeDateValue(this.period_to) + 'T00:00:00');
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        return;
+      if (externalParameters && typeof externalParameters === 'object') {
+        queryParameters = Object.assign({}, externalParameters);
       }
-      fromDate.setDate(fromDate.getDate() + days);
-      toDate.setDate(toDate.getDate() + days);
-      this.period_from = fromDate.toLocaleDateString('en-CA');
-      this.period_to = toDate.toLocaleDateString('en-CA');
-      this.loadReport();
+
+      var urlParams = new URLSearchParams(window.location.search);
+      urlParams.forEach(function(value, key) {
+        queryParameters[key] = value;
+      });
+
+      return queryParameters;
     },
 
-    toPeriodBoundary: function(dateValue, isEndOfDay) {
-      return HC_REPORT_CORE_API.toPeriodBoundary(dateValue, isEndOfDay);
-    },
-
-    // Runtime initialization
     detectDataSourceMode: function() {
-      var qp = this.getQueryParameters();
-      var requestedMode = String(qp.mode || qp.source || '').toLowerCase();
+      var queryParameters = this.getQueryParameters();
+      var requestedMode = (queryParameters.mode || queryParameters.source || '').toString().toLowerCase();
+
       if (requestedMode === 'mock' || requestedMode === 'local') {
         return 'mock';
       }
-      if (qp.mock === '1' || qp.mock === 'true') {
+
+      if (queryParameters.mock === '1' || queryParameters.mock === 'true') {
         return 'mock';
       }
+
+      if (window.HC_QUERY_PARAMETERS && typeof window.HC_QUERY_PARAMETERS === 'object') {
+        return 'hubcloud';
+      }
+
       return 'hubcloud';
     },
 
-    applySingleDateFromQuery: function(queryParameters) {
-      var singleDate = this.getFirstDefinedValue(queryParameters, ['$h.date', 'h.date', 'date']);
-      if (!singleDate) {
-        return;
-      }
-
-      var normalizedSingleDate = this.normalizeDateValue(singleDate);
-      if (!normalizedSingleDate) {
-        return;
-      }
-
-      this.period_from = normalizedSingleDate;
-      this.period_to = normalizedSingleDate;
-    },
-
-    applyPeriodRangeFromQuery: function(queryParameters) {
-      var periodFromValue = this.getFirstDefinedValue(queryParameters, ['period_from', 'date_from', 'from', '$h.period_from', 'h.period_from']);
-      var periodToValue = this.getFirstDefinedValue(queryParameters, ['period_to', 'date_to', 'to', '$h.period_to', 'h.period_to']);
-      var normalizedFrom = this.normalizeDateValue(periodFromValue);
-      var normalizedTo = this.normalizeDateValue(periodToValue);
-
-      if (normalizedFrom) {
-        this.period_from = normalizedFrom;
-      }
-      if (normalizedTo) {
-        this.period_to = normalizedTo;
-      }
-    },
-
-    initializeFiltersFromQuery: function(queryParameters) {
-      for (var i = 0; i < this.filters.length; ++i) {
-        this.initializeFilterStateFromQuery(this.filters[i], queryParameters);
-      }
-    },
-
     initializeRuntime: function() {
-      var qp = this.getQueryParameters();
       this.dataSourceMode = this.detectDataSourceMode();
-
-      this.applySingleDateFromQuery(qp);
-      this.applyPeriodRangeFromQuery(qp);
-      this.initializeFiltersFromQuery(qp);
-
-      this.debugLog('initializeRuntime', {
-        period_from: this.period_from,
-        period_to: this.period_to,
-        filterValues: this.filterValues,
-        dataSourceMode: this.dataSourceMode
-      });
     },
 
-    // Datasource transport and preparation
     executeDatasourceRequest: function(config, doneCallback, failCallback) {
       if (this.dataSourceMode === 'mock') {
-        this.loadMockPayload()
-          .done(function(mockPayload) {
-            doneCallback(this.buildMockDatasourceResponse(mockPayload));
-          }.bind(this))
-          .fail(failCallback);
+        $.getJSON(this.mockDataUrl)
+          .done(function(mockResponse) {
+            var normalizedResponse = mockResponse;
+
+            if (Array.isArray(mockResponse)) {
+              normalizedResponse = { isOK: true, data: mockResponse };
+            } else if (!mockResponse || typeof mockResponse !== 'object' || !('isOK' in mockResponse)) {
+              normalizedResponse = { isOK: true, data: [] };
+            }
+
+            doneCallback(normalizedResponse);
+          })
+          .fail(function(jqXHR, textStatus, errorThrown) {
+            failCallback(jqXHR, textStatus, errorThrown);
+          });
         return;
       }
 
       var safeConfig = {
-        expression: String((config && config.expression) || '').trim(),
+        expression: (config && config.expression ? String(config.expression) : '').trim(),
         applyDimensionRights: true
       };
 
@@ -557,326 +81,616 @@ var vueApp = new Vue({
         return;
       }
 
-      this.debugLog('executeDatasourceRequest', {
-        expressionLength: safeConfig.expression.length,
-        expressionPreview: safeConfig.expression.slice(0, 800)
-      });
-
-      $.ajax({
-        url: '/api/v1/datasource/execute/',
-        type: 'POST',
-        contentType: 'application/json; charset=utf-8',
-        dataType: 'json',
-        data: JSON.stringify(safeConfig)
-      })
-      .done(doneCallback)
-      .fail(failCallback);
-    },
-
-    // Filter option helpers
-    normalizeOptionList: function(items) {
-      return HC_REPORT_CORE_API.normalizeOptionList(items);
-    },
-
-    // Datasource expression helpers
-    formatDslLiteral: function(value) {
-      return HC_REPORT_CORE_API.formatDslLiteral(value);
-    },
-
-    sanitizeDslNumericLiterals: function(expression) {
-      return HC_REPORT_CORE_API.sanitizeDslNumericLiterals(expression);
-    },
-
-    findUnresolvedDsPlaceholders: function(expression) {
-      return HC_REPORT_CORE_API.findUnresolvedDsPlaceholders(expression);
-    },
-
-    replaceDsPlaceholders: function(expression, tokenMap) {
-      return HC_REPORT_CORE_API.replaceDsPlaceholders(expression, tokenMap);
+      this.sendRequest('/api/v1/datasource/execute/', 'POST', JSON.stringify(safeConfig), doneCallback, failCallback);
     },
 
     getDatasourceExpression: function() {
-      if (HC_REPORT_DS_TEXT && String(HC_REPORT_DS_TEXT).trim()) {
-        return String(HC_REPORT_DS_TEXT).trim();
-      }
-      return HC_REPORT_CONFIG.datasourceExpression || '';
+      return `
+catalog.номенклатура | Select (id, группа) | GetTitle () as Группа; //Это таблица для подтягивания Группы к номенклатуре
+закупка | Last (номенклатура, цена) | Compute (цена_гр, цена/1000 ) as цена;
+
+рецепты_2 | номенклатура_выход (true ) |Select (номенклатура_выход as номенклатура_хлеб_и_пр, номенклатура_вход as номенулатура_тесто_и_пр, колво_на_1_ед, колво_на_100_г) | GetTitle () as Рецепт;  //таблица Рецептов
+
+// ниже таблица, "выпуск цеха" - это вся номенклатура, которую мы продаем, то есть это изделия, и поэтому нет никаких фильтров, но так же может быть заказан и конечный ингредиент
+рецепты_2 | GroupBy(номенклатура_выход as номенклатура) | AddColumn (производим_шт_или_кг, number, 10) | GetTitle () | LeftJoinAuto (группа, номенклатура = группа.id ) | группа (4)  | LeftJoinAuto (рецепт, номенклатура = рецепт.номенклатура_хлеб_и_пр ) | Compute (нужно_теста_и_пр_в_гр, колво_на_100_г* производим_шт_или_кг) as ТаблицаТестоКолво; //получили таблицу, в которой мы посчитали, сколько нужно Теста и других ингредиентов, которые в рецепте хлеба
+
+//нам нужна таблица ингредиентов, которую подтянем к первому переделу - к тесту
+TempTable.рецепт | Select (номенклатура_хлеб_и_пр as номенлатура_1, номенклатура_хлеб_и_пр_title as номенлатура_1_title, номенулатура_тесто_и_пр as номенлатура_2, номенулатура_тесто_и_пр_title as номенлатура_2_title, колво_на_1_ед, колво_на_100_г ) as Рецепт_2;
+
+//теперь присоединяем слева таблицу Рецептов, то есть дальше разукомплектовываем Тесто (и пр) до следующего уровня
+CreateTable () | FullJoinAuto ( ТаблицаТестоКолво, ) | DeleteColumn (колво_на_1_ед, колво_на_100_г ) | LeftJoinAuto  (Рецепт_2, номенулатура_тесто_и_пр = Рецепт_2.номенлатура_1 ) //эту процедуру нужно три раза повторить, ...Coalesce ( номенклатура_ххх, номенлатура_2_title, номенулатура_тесто_и_пр_title ) | Coalesce ( колво_ххх, , нужно_теста_и_пр_в_гр ) | 
+
+| Compute ( колво_потребн_расчет, нужно_теста_и_пр_в_гр * колво_на_100_г / 100 ) | Coalesce ( колво_потреб_ингред_1, колво_потребн_расчет, нужно_теста_и_пр_в_гр )  | Coalesce (номенк_3й_уровень_title, номенлатура_2_title, номенулатура_тесто_и_пр_title) 
+| Coalesce (номенк_3й_уровень, номенлатура_2, номенулатура_тесто_и_пр)
+| DeleteColumn ( номенклатура_title, номенлатура_1_title, номенлатура_2_title, номенклатура, номенлатура_1, номенлатура_2, id, группа, группа_title, колво_потребн_расчет, колво_на_1_ед, колво_на_100_г, нужно_теста_и_пр_в_гр)
+
+//к этому моменту получили разукомплектование до 2-го уровня, то есть Хлеб (1) - Тесто (2-й уровень) - Мука и пр (3-й уровень), и теперь разукомплектовываем третий уровень, то есть будет уже 4-й 
+| LeftJoinAuto  (Рецепт_2, номенк_3й_уровень = Рецепт_2.номенлатура_1 ) | Compute ( колво_расчет_4й_уровень, колво_потреб_ингред_1 * колво_на_100_г / 100 ) | Coalesce ( колво_отчет_гр, колво_расчет_4й_уровень, колво_потреб_ингред_1 )  | Compute (колво_отчет_кг, колво_отчет_гр / 1000)
+
+| Coalesce (номенк_4й_уровень_title, номенлатура_2_title, номенк_3й_уровень_title) | Coalesce (номенк_4й_уровень, номенлатура_2, номенк_3й_уровень) | DeleteColumn (колво_на_1_ед, колво_на_100_г, колво_расчет_4й_уровень,  номенк_3й_уровень, колво_потреб_ингред_1, номенулатура_тесто_и_пр, номенлатура_1, номенлатура_1_title, номенлатура_2, номенлатура_2_title)
+
+   |  LeftJoinAuto  (цена, номенк_4й_уровень= цена.номенклатура ) | DeleteColumn (номенклатура, цена) | Compute (цена, цена_гр*колво_отчет_гр)  |  LeftJoinAuto  (группа, номенк_4й_уровень= группа.id) | группа (1) | GroupBy (номенклатура_хлеб_и_пр_title, номенк_4й_уровень_title,колво_отчет_гр, цена )
+      `;
     },
 
-    // Report row normalization
-    readField: function(item, keys, fallback) {
-      for (var i = 0; i < keys.length; ++i) {
-        var key = keys[i];
-        if (Object.prototype.hasOwnProperty.call(item, key) && item[key] !== null && typeof item[key] !== 'undefined') {
-          return item[key];
+    onReportClick: function() {
+      this.isWaiting = true;
+      this.rawRows = [];
+      this.displayRows = [];
+
+      var config = {
+        expression: this.getDatasourceExpression(),
+        applyDimensionRights: true
+      };
+
+      this.executeDatasourceRequest(
+        config,
+        function(responseData) {
+          var responseItems = Array.isArray(responseData.data) ? responseData.data : [];
+          if (responseData.isOK) {
+            this.rawRows = responseItems;
+            this.fullDisplayRows = this.buildDisplayRows(responseItems);
+            if (this.selectedDoughName && !this.hasDoughName(this.selectedDoughName)) {
+              this.selectedDoughName = '';
+            }
+            this.applyDoughFilter();
+            if (this.displayRows.length === 0) {
+              this.makeToast('Источник вернул 0 строк для текущего контекста.', 'warning', 8000);
+            }
+          } else {
+            this.makeToast(responseData.message || 'Ошибка при загрузке отчета', 'danger');
+          }
+          this.isWaiting = false;
+        }.bind(this),
+        function(jqXHR, textStatus, errorThrown) {
+          this.makeToast(textStatus || errorThrown || 'Ошибка запроса', 'danger');
+          this.isWaiting = false;
+        }.bind(this)
+      );
+    },
+
+    getValueByCandidates: function(row, candidates) {
+      for (var i = 0; i < candidates.length; ++i) {
+        var key = candidates[i];
+        if (Object.prototype.hasOwnProperty.call(row, key)) {
+          return row[key];
         }
       }
-      return fallback;
+      return '';
     },
 
-    getRowMapKeys: function(fieldName, fallbackKeys) {
-      if (HC_REPORT_CONFIG.rowMap && Array.isArray(HC_REPORT_CONFIG.rowMap[fieldName])) {
-        return HC_REPORT_CONFIG.rowMap[fieldName];
-      }
-      return fallbackKeys || [];
+    toNumber: function(value) {
+      var numeric = parseFloat(value);
+      return isNaN(numeric) ? 0 : numeric;
     },
 
-    normalizeMappedValue: function(item, column) {
-      var key = column.key;
-      var rawValue = this.readField(item, this.getRowMapKeys(key), column.type === 'number' ? 0 : '');
-      if (column.type === 'number') {
-        return Number(rawValue || 0);
+    buildDisplayRows: function(rows) {
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return [];
       }
-      if (rawValue === null || typeof rawValue === 'undefined') {
+
+      var grouped = {};
+
+      for (var i = 0; i < rows.length; ++i) {
+        var row = rows[i] || {};
+        var doughName = this.getValueByCandidates(row, [
+          'dough',
+          'номенклатура_хлеб_и_пр_title',
+          'номенклатура_выход_title'
+        ]) || 'Без названия';
+
+        var ingredientName = this.getValueByCandidates(row, [
+          'ingredient',
+          'номенк_4й_уровень_title',
+          'номенклатура_вход_title'
+        ]) || 'Ингредиент';
+
+        var qtyGr = this.toNumber(this.getValueByCandidates(row, [
+          'qty',
+          'колво_отчет_гр',
+          'колво_2_итого',
+          'колво_на_100_г'
+        ]));
+
+        var price = this.toNumber(this.getValueByCandidates(row, ['цена']));
+
+        if (!grouped[doughName]) {
+          grouped[doughName] = {
+            totalQty: 0,
+            totalPrice: 0,
+            ingredients: {}
+          };
+        }
+
+        if (!grouped[doughName].ingredients[ingredientName]) {
+          grouped[doughName].ingredients[ingredientName] = {
+            qtyGr: 0,
+            price: 0
+          };
+        }
+
+        grouped[doughName].totalQty += qtyGr;
+        grouped[doughName].totalPrice += price;
+        grouped[doughName].ingredients[ingredientName].qtyGr += qtyGr;
+        grouped[doughName].ingredients[ingredientName].price += price;
+      }
+
+      var sectionNames = Object.keys(grouped).sort(function(a, b) {
+        return a.localeCompare(b, 'ru');
+      });
+
+      var result = [];
+      for (var sectionIndex = 0; sectionIndex < sectionNames.length; ++sectionIndex) {
+        var sectionName = sectionNames[sectionIndex];
+        var sectionData = grouped[sectionName];
+
+        result.push({
+          type: 'group-row',
+          name: sectionName,
+          qtyGr: sectionData.totalQty,
+          price: sectionData.totalPrice
+        });
+
+        var ingredientNames = Object.keys(sectionData.ingredients).sort(function(a, b) {
+          return a.localeCompare(b, 'ru');
+        });
+
+        for (var ingredientIndex = 0; ingredientIndex < ingredientNames.length; ++ingredientIndex) {
+          var ingredientName = ingredientNames[ingredientIndex];
+          var ingredientData = sectionData.ingredients[ingredientName];
+
+          result.push({
+            type: 'ingredient-row',
+            name: ingredientName,
+            qtyGr: ingredientData.qtyGr,
+            price: ingredientData.price
+          });
+        }
+      }
+
+      return result;
+    },
+
+    getDoughNames: function() {
+      var names = [];
+      var seen = {};
+      for (var i = 0; i < this.fullDisplayRows.length; ++i) {
+        var row = this.fullDisplayRows[i] || {};
+        if (row.type !== 'group-row') {
+          continue;
+        }
+        var name = String(row.name || '').trim();
+        if (!name || seen[name]) {
+          continue;
+        }
+        seen[name] = true;
+        names.push(name);
+      }
+      return names;
+    },
+
+    hasDoughName: function(name) {
+      var names = this.getDoughNames();
+      for (var i = 0; i < names.length; ++i) {
+        if (names[i] === name) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    applyDoughFilter: function() {
+      if (!this.selectedDoughName) {
+        this.displayRows = Array.isArray(this.fullDisplayRows) ? this.fullDisplayRows.slice() : [];
+        return;
+      }
+
+      var filteredRows = [];
+      var includeCurrentBlock = false;
+
+      for (var i = 0; i < this.fullDisplayRows.length; ++i) {
+        var row = this.fullDisplayRows[i] || {};
+        if (row.type === 'group-row') {
+          includeCurrentBlock = row.name === this.selectedDoughName;
+        }
+
+        if (includeCurrentBlock) {
+          filteredRows.push(row);
+        }
+      }
+
+      this.displayRows = filteredRows;
+    },
+
+    getDoughNameByRowIndex: function(index) {
+      if (!Array.isArray(this.displayRows) || index < 0 || index >= this.displayRows.length) {
         return '';
       }
-      return String(rawValue);
-    },
 
-    normalizeHubCloudRow: function(item) {
-      var row = {};
-      for (var i = 0; i < this.columns.length; ++i) {
-        var column = this.columns[i];
-        row[column.key] = this.normalizeMappedValue(item, column);
-      }
-      return row;
-    },
-
-    normalizeReportRows: function(items) {
-      return HC_REPORT_CORE_API.normalizeReportRows(items, this.normalizeHubCloudRow.bind(this));
-    },
-
-    getResponseDataItems: function(responseData) {
-      return HC_REPORT_CORE_API.getResponseDataItems(responseData);
-    },
-
-    loadMockPayload: function() {
-      return $.getJSON(this.mockDataUrl).then(function(response) {
-        return response || {};
-      });
-    },
-
-    getMockRows: function(mockPayload) {
-      if (Array.isArray(mockPayload)) {
-        return mockPayload;
-      }
-      if (mockPayload && typeof mockPayload === 'object' && Array.isArray(mockPayload.rows)) {
-        return mockPayload.rows;
-      }
-      return [];
-    },
-
-    buildMockDatasourceResponse: function(mockPayload) {
-      return {
-        isOK: true,
-        data: this.applyMockFilters(this.getMockRows(mockPayload))
-      };
-    },
-
-    rowMatchesMockFilter: function(row, filter) {
-      return HC_REPORT_CORE_API.rowMatchesMockFilter(row, filter, this.filterValues);
-    },
-
-    applyMockFilters: function(rows) {
-      return HC_REPORT_CORE_API.applyMockFilters(rows, this.filters, this.filterValues);
-    },
-
-    resetRowsWithToast: function(message, alertClass) {
-      this.rows = [];
-      this.isWaiting = false;
-      this.makeToast(message, alertClass);
-    },
-
-    finishReportLoadSuccess: function(responseData) {
-      this.rows = this.normalizeReportRows(this.getResponseDataItems(responseData));
-      this.isWaiting = false;
-    },
-
-    finishReportLoadError: function(jqXHR, textStatus, errorThrown) {
-      this.resetRowsWithToast(textStatus || errorThrown || 'Ошибка загрузки отчета', 'danger');
-    },
-
-    buildHubCloudExpression: function() {
-      this.dateStart = this.toPeriodBoundary(this.period_from, false);
-      this.dateFinish = this.toPeriodBoundary(this.period_to, true);
-
-      var tokenMap = this.buildDatasourceTokenMap();
-      var expression = this.getDatasourceExpression();
-      expression = this.replaceDsPlaceholders(expression, tokenMap);
-      expression = this.sanitizeDslNumericLiterals(expression);
-      return expression;
-    },
-
-    buildDatasourceTokenMap: function() {
-      var tokenMap = {
-        dateStart: this.dateStart,
-        dateFinish: this.dateFinish
-      };
-
-      for (var i = 0; i < this.filters.length; ++i) {
-        var filter = this.filters[i];
-        tokenMap[filter.dsKey || filter.key] = this.formatDslLiteral(this.filterValues[filter.key]);
-      }
-      return tokenMap;
-    },
-
-    validateDatasourceExpression: function(expression) {
-      if (!String(expression || '').trim()) {
-        return 'Не задан getDatasourceExpression() для текущего отчета';
-      }
-
-      var unresolved = this.findUnresolvedDsPlaceholders(expression);
-      if (unresolved.length > 0) {
-        return 'Не подставлены параметры DS: ' + unresolved.join(', ');
+      for (var i = index; i >= 0; --i) {
+        var row = this.displayRows[i] || {};
+        if (row.type === 'group-row') {
+          return String(row.name || '').trim();
+        }
       }
 
       return '';
     },
 
-    submitDatasourceExpression: function(expression) {
-      this.executeDatasourceRequest(
-        { expression: expression },
-        this.finishReportLoadSuccess.bind(this),
-        this.finishReportLoadError.bind(this)
-      );
-    },
-
-    // Filter loading and defaults
-    applyDefaultFilterSelection: function(filter) {
-      var options = this.filterOptions[filter.key] || [];
-      var currentValue = this.filterValues[filter.key];
-      if (filter.multiple) {
-        if (!Array.isArray(currentValue) || currentValue.length === 0) {
-          this.filterValues[filter.key] = options.length > 0 ? [options[0].value] : [];
-        }
-        return;
+    getRowActionTitle: function(row, index) {
+      var currentRow = row || {};
+      if (this.selectedDoughName && currentRow.type === 'group-row' && currentRow.name === this.selectedDoughName) {
+        return 'Показать все рецепты';
       }
-      if ((!currentValue || currentValue.length === 0) && options.length > 0) {
-        this.filterValues[filter.key] = options[0].value;
-      }
+      return 'Показать карточку';
     },
 
-    syncFilterState: function(filter) {
-      this.applyDefaultFilterSelection(filter);
-      this.onFilterChange(filter.key);
-    },
+    onRecipeRowClick: function(row, index) {
+      var currentRow = row || {};
 
-    applyFilterOptions: function(filter, items) {
-      this.filterOptions[filter.key] = this.normalizeOptionList(items);
-      this.syncFilterState(filter);
-    },
-
-    clearFilterOptions: function(filter) {
-      this.filterOptions[filter.key] = [];
-    },
-
-    loadFilterOptions: function(filter) {
-      var deferred = $.Deferred();
-
-      if (!filter.optionsExpression) {
-        this.clearFilterOptions(filter);
-        deferred.resolve();
-        return deferred.promise();
-      }
-
-      this.executeDatasourceRequest(
-        { expression: filter.optionsExpression },
-        function(responseData) {
-          var items = Array.isArray(responseData.data) ? responseData.data : [];
-          this.applyFilterOptions(filter, items);
-          deferred.resolve();
-        }.bind(this),
-        function() {
-          this.clearFilterOptions(filter);
-          deferred.resolve();
-        }.bind(this)
-      );
-
-      return deferred.promise();
-    },
-
-    loadHubCloudFilters: function() {
-      if (!this.filters.length) {
-        return $.Deferred().resolve().promise();
-      }
-
-      var pending = [];
-      for (var i = 0; i < this.filters.length; ++i) {
-        pending.push(this.loadFilterOptions(this.filters[i]));
-      }
-
-      return $.when.apply($, pending);
-    },
-
-    // Report loading
-    loadReport: function() {
-      this.isWaiting = true;
-
-      var expression = this.buildHubCloudExpression();
-      if (HC_DEBUG && typeof console !== 'undefined' && console.log) {
-        console.log('[HC-DS-FINAL]', expression);
-      }
-      var validationError = this.validateDatasourceExpression(expression);
-      if (validationError) {
-        this.resetRowsWithToast(validationError, validationError.indexOf('Не задан') === 0 ? 'warning' : 'danger');
-        return;
-      }
-      this.submitDatasourceExpression(expression);
-    },
-
-    // Rendering helpers
-    onFilterChange: function(filterKey) {
-      var options = this.filterOptions[filterKey] || [];
-      var selectedValue = this.filterValues[filterKey];
-      if (Array.isArray(selectedValue)) {
-        var selectedTitles = [];
-        for (var i = 0; i < options.length; ++i) {
-          if (selectedValue.indexOf(String(options[i].value)) >= 0) {
-            selectedTitles.push(options[i].title);
-          }
-        }
-        this.filterTitles[filterKey] = selectedTitles;
+      if (this.selectedDoughName && currentRow.type === 'group-row' && currentRow.name === this.selectedDoughName) {
+        this.selectDough('');
         return;
       }
 
-      var value = String(selectedValue || '');
-      for (var j = 0; j < options.length; ++j) {
-        if (String(options[j].value) === value) {
-          this.filterTitles[filterKey] = options[j].title;
-          return;
-        }
+      var doughName = currentRow.type === 'group-row'
+        ? String(currentRow.name || '').trim()
+        : this.getDoughNameByRowIndex(index);
+
+      if (!doughName) {
+        return;
       }
+
+      this.selectDough(doughName);
+    },
+
+    selectDough: function(name) {
+      this.selectedDoughName = name || '';
+      this.applyDoughFilter();
+      this.showDoughModal = false;
+    },
+
+    onTableHeaderEnter: function() {
+      this.isTableHeaderHovered = true;
+    },
+
+    onTableHeaderLeave: function() {
+      this.isTableHeaderHovered = false;
+    },
+
+    onTableHeaderClick: function(event) {
+      if (!event || event.button !== 0) {
+        return;
+      }
+      if (!this.isTableHeaderHovered) {
+        return;
+      }
+      this.showDoughModal = true;
+    },
+
+    closeDoughModal: function() {
+      this.showDoughModal = false;
     },
 
     formatNumber: function(value) {
-      var numberValue = Number(value || 0);
-      if (isNaN(numberValue)) {
-        return '';
-      }
-      return numberValue.toLocaleString('ru-RU', {
-        minimumFractionDigits: 3,
-        maximumFractionDigits: 3
+      return this.toNumber(value).toLocaleString('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
       });
     },
 
-    formatCell: function(column, value) {
-      if (column.type === 'number') {
-        return this.formatNumber(value);
-      }
-      if (value === null || typeof value === 'undefined') {
-        return '';
-      }
-      return String(value);
+    escapeXml: function(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
     },
 
-    cellClass: function(column, value) {
-      var align = column.alignClass || '';
-      if (column.type === 'number' && Number(value || 0) < 0) {
-        return align + ' core-neg';
+    encodeUtf8: function(value) {
+      if (typeof TextEncoder !== 'undefined') {
+        return new TextEncoder().encode(String(value || ''));
       }
-      return align;
+
+      var encoded = unescape(encodeURIComponent(String(value || '')));
+      var bytes = new Uint8Array(encoded.length);
+      for (var i = 0; i < encoded.length; ++i) {
+        bytes[i] = encoded.charCodeAt(i);
+      }
+      return bytes;
     },
 
-    // UI actions
+    getZipCrcTable: function() {
+      if (this._zipCrcTable) {
+        return this._zipCrcTable;
+      }
+
+      var table = [];
+      for (var i = 0; i < 256; ++i) {
+        var c = i;
+        for (var j = 0; j < 8; ++j) {
+          c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        table[i] = c >>> 0;
+      }
+
+      this._zipCrcTable = table;
+      return table;
+    },
+
+    calculateCrc32: function(bytes) {
+      var table = this.getZipCrcTable();
+      var crc = 0xffffffff;
+
+      for (var i = 0; i < bytes.length; ++i) {
+        crc = table[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+      }
+
+      return (crc ^ 0xffffffff) >>> 0;
+    },
+
+    createZipRecord: function(signature, size) {
+      var buffer = new ArrayBuffer(size);
+      var view = new DataView(buffer);
+      view.setUint32(0, signature, true);
+      return {
+        buffer: buffer,
+        view: view,
+        bytes: new Uint8Array(buffer)
+      };
+    },
+
+    concatUint8Arrays: function(chunks) {
+      var totalLength = 0;
+      for (var i = 0; i < chunks.length; ++i) {
+        totalLength += chunks[i].length;
+      }
+
+      var result = new Uint8Array(totalLength);
+      var offset = 0;
+      for (var chunkIndex = 0; chunkIndex < chunks.length; ++chunkIndex) {
+        result.set(chunks[chunkIndex], offset);
+        offset += chunks[chunkIndex].length;
+      }
+
+      return result;
+    },
+
+    createStoredZip: function(files) {
+      var localChunks = [];
+      var centralChunks = [];
+      var localOffset = 0;
+
+      for (var i = 0; i < files.length; ++i) {
+        var file = files[i];
+        var nameBytes = this.encodeUtf8(file.name);
+        var contentBytes = file.contentBytes;
+        var crc32 = this.calculateCrc32(contentBytes);
+
+        var localHeader = this.createZipRecord(0x04034b50, 30);
+        localHeader.view.setUint16(4, 20, true);
+        localHeader.view.setUint16(6, 0, true);
+        localHeader.view.setUint16(8, 0, true);
+        localHeader.view.setUint16(10, 0, true);
+        localHeader.view.setUint16(12, 0, true);
+        localHeader.view.setUint32(14, crc32, true);
+        localHeader.view.setUint32(18, contentBytes.length, true);
+        localHeader.view.setUint32(22, contentBytes.length, true);
+        localHeader.view.setUint16(26, nameBytes.length, true);
+        localHeader.view.setUint16(28, 0, true);
+
+        localChunks.push(localHeader.bytes, nameBytes, contentBytes);
+
+        var centralHeader = this.createZipRecord(0x02014b50, 46);
+        centralHeader.view.setUint16(4, 20, true);
+        centralHeader.view.setUint16(6, 20, true);
+        centralHeader.view.setUint16(8, 0, true);
+        centralHeader.view.setUint16(10, 0, true);
+        centralHeader.view.setUint16(12, 0, true);
+        centralHeader.view.setUint16(14, 0, true);
+        centralHeader.view.setUint32(16, crc32, true);
+        centralHeader.view.setUint32(20, contentBytes.length, true);
+        centralHeader.view.setUint32(24, contentBytes.length, true);
+        centralHeader.view.setUint16(28, nameBytes.length, true);
+        centralHeader.view.setUint16(30, 0, true);
+        centralHeader.view.setUint16(32, 0, true);
+        centralHeader.view.setUint16(34, 0, true);
+        centralHeader.view.setUint16(36, 0, true);
+        centralHeader.view.setUint32(38, 0, true);
+        centralHeader.view.setUint32(42, localOffset, true);
+
+        centralChunks.push(centralHeader.bytes, nameBytes);
+
+        localOffset += localHeader.bytes.length + nameBytes.length + contentBytes.length;
+      }
+
+      var centralDirectory = this.concatUint8Arrays(centralChunks);
+      var endRecord = this.createZipRecord(0x06054b50, 22);
+      endRecord.view.setUint16(4, 0, true);
+      endRecord.view.setUint16(6, 0, true);
+      endRecord.view.setUint16(8, files.length, true);
+      endRecord.view.setUint16(10, files.length, true);
+      endRecord.view.setUint32(12, centralDirectory.length, true);
+      endRecord.view.setUint32(16, localOffset, true);
+      endRecord.view.setUint16(20, 0, true);
+
+      return this.concatUint8Arrays(localChunks.concat([centralDirectory, endRecord.bytes]));
+    },
+
+    getExcelColumnName: function(index) {
+      var result = '';
+      var current = index;
+
+      while (current > 0) {
+        var modulo = (current - 1) % 26;
+        result = String.fromCharCode(65 + modulo) + result;
+        current = Math.floor((current - modulo) / 26);
+      }
+
+      return result || 'A';
+    },
+
+    buildXlsxCell: function(columnIndex, rowIndex, value, type, styleIndex) {
+      var cellRef = this.getExcelColumnName(columnIndex) + rowIndex;
+      var styleAttr = typeof styleIndex === 'number' ? ' s="' + styleIndex + '"' : '';
+
+      if (type === 'number') {
+        return '<c r="' + cellRef + '"' + styleAttr + '><v>' + this.toNumber(value) + '</v></c>';
+      }
+
+      return '<c r="' + cellRef + '" t="inlineStr"' + styleAttr + '><is><t>' + this.escapeXml(value) + '</t></is></c>';
+    },
+
+    buildXlsxWorksheetXml: function() {
+      var rowsXml = [];
+      var headerCells = [
+        this.buildXlsxCell(1, 1, 'Тесто / Ингредиенты', 'string', 1),
+        this.buildXlsxCell(2, 1, 'Кол-во (гр)', 'string', 1),
+        this.buildXlsxCell(3, 1, 'Цена', 'string', 1)
+      ];
+
+      rowsXml.push('<row r="1">' + headerCells.join('') + '</row>');
+
+      for (var i = 0; i < this.displayRows.length; ++i) {
+        var row = this.displayRows[i] || {};
+        var rowIndex = i + 2;
+        var styleIndex = row.type === 'group-row' ? 2 : 0;
+
+        rowsXml.push(
+          '<row r="' + rowIndex + '">' +
+            this.buildXlsxCell(1, rowIndex, String(row.name || ''), 'string', styleIndex) +
+            this.buildXlsxCell(2, rowIndex, row.qtyGr, 'number', styleIndex) +
+            this.buildXlsxCell(3, rowIndex, row.price, 'number', styleIndex) +
+          '</row>'
+        );
+      }
+
+      return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+          '<dimension ref="A1:C' + (this.displayRows.length + 1) + '"/>' +
+          '<sheetViews><sheetView workbookViewId="0"/></sheetViews>' +
+          '<sheetFormatPr defaultRowHeight="15"/>' +
+          '<cols>' +
+            '<col min="1" max="1" width="42" customWidth="1"/>' +
+            '<col min="2" max="3" width="16" customWidth="1"/>' +
+          '</cols>' +
+          '<sheetData>' + rowsXml.join('') + '</sheetData>' +
+        '</worksheet>'
+      );
+    },
+
+    buildXlsxStylesXml: function() {
+      return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+          '<fonts count="2">' +
+            '<font><sz val="11"/><name val="Calibri"/><family val="2"/></font>' +
+            '<font><b/><sz val="11"/><name val="Calibri"/><family val="2"/></font>' +
+          '</fonts>' +
+          '<fills count="3">' +
+            '<fill><patternFill patternType="none"/></fill>' +
+            '<fill><patternFill patternType="gray125"/></fill>' +
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFEAF2FF"/><bgColor indexed="64"/></patternFill></fill>' +
+          '</fills>' +
+          '<borders count="1">' +
+            '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+          '</borders>' +
+          '<cellStyleXfs count="1">' +
+            '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
+          '</cellStyleXfs>' +
+          '<cellXfs count="3">' +
+            '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+            '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+            '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
+          '</cellXfs>' +
+          '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>'
+      );
+    },
+
+    buildXlsxFileEntries: function() {
+      var worksheetXml = this.buildXlsxWorksheetXml();
+      var workbookXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+          '<sheets>' +
+            '<sheet name="Отчет" sheetId="1" r:id="rId1"/>' +
+          '</sheets>' +
+        '</workbook>';
+
+      var workbookRelsXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+          '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>';
+
+      var rootRelsXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>';
+
+      var contentTypesXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+          '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+          '<Default Extension="xml" ContentType="application/xml"/>' +
+          '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+          '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+          '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
+
+      return [
+        { name: '[Content_Types].xml', contentBytes: this.encodeUtf8(contentTypesXml) },
+        { name: '_rels/.rels', contentBytes: this.encodeUtf8(rootRelsXml) },
+        { name: 'xl/workbook.xml', contentBytes: this.encodeUtf8(workbookXml) },
+        { name: 'xl/_rels/workbook.xml.rels', contentBytes: this.encodeUtf8(workbookRelsXml) },
+        { name: 'xl/worksheets/sheet1.xml', contentBytes: this.encodeUtf8(worksheetXml) },
+        { name: 'xl/styles.xml', contentBytes: this.encodeUtf8(this.buildXlsxStylesXml()) }
+      ];
+    },
+
+    downloadXlsxWorkbook: function() {
+      var zipBytes = this.createStoredZip(this.buildXlsxFileEntries());
+      var blob = new Blob(
+        [zipBytes],
+        { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+      );
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'sebestoimost_testa_' + new Date().toLocaleDateString('en-CA') + '.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    },
+
+    exportToExcel: function() {
+      if (!Array.isArray(this.displayRows) || this.displayRows.length === 0) {
+        this.makeToast('Нет данных для выгрузки', 'warning');
+        return;
+      }
+
+      this.downloadXlsxWorkbook();
+    },
+
+    printReport: function() {
+      if (!Array.isArray(this.displayRows) || this.displayRows.length === 0) {
+        this.makeToast('Нет данных для печати', 'warning');
+        return;
+      }
+
+      window.print();
+    },
+
+    // Backward-compatible alias in case HTML still references old handler name.
+    exportToCsv: function() {
+      this.exportToExcel();
+    },
+
     escapeHtml: function(value) {
       return String(value || '')
         .replace(/&/g, '&amp;')
@@ -886,115 +700,35 @@ var vueApp = new Vue({
         .replace(/'/g, '&#39;');
     },
 
-    buildExcelHeaderHtml: function() {
-      var header = '<th>#</th>';
-      for (var c = 0; c < this.columns.length; ++c) {
-        header += '<th>' + this.escapeHtml(this.columns[c].label) + '</th>';
-      }
-      return header;
+    sendRequest: function(url, reqType, dataSend, doneCallback, failCallback) {
+      $.ajax({
+        url: url,
+        type: reqType,
+        contentType: 'application/json; charset=utf-8',
+        dataType: 'json',
+        data: dataSend
+      })
+      .done(doneCallback)
+      .fail(failCallback);
     },
 
-    buildExcelBodyHtml: function() {
-      var body = '';
-      for (var i = 0; i < this.rows.length; ++i) {
-        body += '<tr><td>' + this.escapeHtml(i + 1) + '</td>';
-        for (var j = 0; j < this.columns.length; ++j) {
-          var col = this.columns[j];
-          body += '<td>' + this.escapeHtml(this.formatCell(col, this.rows[i][col.key])) + '</td>';
-        }
-        body += '</tr>';
-      }
-      return body;
-    },
-
-    buildExcelDocumentHtml: function() {
-      var header = this.buildExcelHeaderHtml();
-      var body = this.buildExcelBodyHtml();
-      var html = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>" +
-        "<table border='1'><thead><tr>" + header + "</tr></thead><tbody>" + body + "</tbody></table></body></html>";
-      return html;
-    },
-
-    downloadExcelDocument: function(html) {
-      var blob = new Blob(['\uFEFF', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-      var link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'retail_stock_turnover_' + this.period_from + '_to_' + this.period_to + '.xls';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-    },
-
-    exportToExcel: function() {
-      if (!Array.isArray(this.rows) || this.rows.length === 0) {
-        this.makeToast('Нет данных для выгрузки', 'warning');
-        return;
-      }
-
-      this.downloadExcelDocument(this.buildExcelDocumentHtml());
-    },
-
-    printReport: function() {
-      window.print();
-    },
-
-    buildToastHtml: function(text, alertClass) {
+    makeToast: function(text, alertClass, fadeTime) {
+      var timeout = typeof fadeTime === 'number' ? fadeTime : 5000;
       var template = "<div id='toastAlert' class='alert alert-%class% alert-dismissable' style='width:360px; position:fixed; top:20px; right:20px; z-index:9999;'><a href='#' class='close' data-dismiss='alert' aria-label='close'>&times;</a><span>%text%</span></div>";
       template = template.replace('%text%', text || '');
       template = template.replace('%class%', alertClass || 'info');
-      return template;
-    },
 
-    makeToast: function(text, alertClass) {
-      var template = this.buildToastHtml(text, alertClass);
       $('#toastAlert').remove();
       $('body').append(template);
-      $('#toastAlert').fadeOut(4500);
-    },
 
-    // App bootstrap
-    bootstrapMockData: function(payload) {
-      var mockFilters = payload.filters || {};
-      for (var j = 0; j < this.filters.length; ++j) {
-        var filter = this.filters[j];
-        var key = filter.key;
-        var list = Array.isArray(mockFilters[key]) ? mockFilters[key] : [];
-        this.filterOptions[key] = this.normalizeOptionList(list);
-        this.syncFilterState(filter);
+      if (timeout > 0) {
+        $('#toastAlert').fadeOut(timeout);
       }
-
-      this.rows = this.normalizeReportRows(this.buildMockDatasourceResponse(payload).data);
-    },
-
-    startMockMode: function() {
-      this.loadMockPayload()
-        .done(function(payload) {
-          this.bootstrapMockData(payload);
-        }.bind(this))
-        .fail(function() {
-          this.rows = [];
-          this.makeToast('Не удалось загрузить mock-data.json', 'warning');
-        }.bind(this));
-    },
-
-    startLiveMode: function() {
-      this.loadHubCloudFilters().always(function() {
-        this.loadReport();
-      }.bind(this));
-    },
-
-    initializeData: function() {
-      if (this.dataSourceMode === 'mock') {
-        this.startMockMode();
-        return;
-      }
-
-      this.startLiveMode();
     }
   },
+
   mounted: function() {
     this.initializeRuntime();
-    this.initializeData();
+    this.onReportClick();
   }
 });

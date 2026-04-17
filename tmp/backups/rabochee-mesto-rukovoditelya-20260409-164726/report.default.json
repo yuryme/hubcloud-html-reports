@@ -1,0 +1,36 @@
+{
+  "reportTitle": "Рабочее место руководителя",
+  "mockDataFile": "mock-data.json",
+  "tabs": [
+    { "key": "expenses", "title": "Расходы DS" },
+    { "key": "kp", "title": "КП" }
+  ],
+  "filters": [],
+  "columns": [
+    { "key": "id", "label": "id", "type": "text", "alignClass": "text-left" },
+    { "key": "registrator", "label": "registrator_title", "type": "text", "alignClass": "text-left" },
+    { "key": "date", "label": "date", "type": "text", "alignClass": "text-left" },
+    { "key": "budgetitem", "label": "budgetitem_title", "type": "text", "alignClass": "text-left" },
+    { "key": "companyaccount", "label": "companyaccount_title", "type": "text", "alignClass": "text-left" },
+    { "key": "partner", "label": "partner_title", "type": "text", "alignClass": "text-left" },
+    { "key": "person", "label": "person_title", "type": "text", "alignClass": "text-left" },
+    { "key": "номер_заказа", "label": "номер_заказа", "type": "text", "alignClass": "text-left" },
+    { "key": "комментарий", "label": "комментарий", "type": "text", "alignClass": "text-left" },
+    { "key": "коммент_директор", "label": "коммент_директор", "type": "text", "alignClass": "text-left" },
+    { "key": "amount", "label": "amount", "type": "text", "alignClass": "text-left" }
+  ],
+  "rowMap": {
+    "id": ["id"],
+    "registrator": ["registrator_title", "registrator"],
+    "date": ["date"],
+    "budgetitem": ["budgetitem_title", "budgetitem"],
+    "companyaccount": ["companyaccount_title", "companyaccount"],
+    "partner": ["partner_title", "partner"],
+    "person": ["person_title", "person"],
+    "номер_заказа": ["номер_заказа"],
+    "комментарий": ["комментарий"],
+    "коммент_директор": ["коммент_директор"],
+    "amount": ["amount"]
+  },
+  "datasourceExpression": "деньги | period (&dateStart, &dateFinish) |Select(id, registrator, date, budgetitem, companyaccount, partner, person,  номер_заказа, комментарий, коммент_директор) | Gettitle() as t1;\nTempTable.t1 | Select (id, date, registrator_title, номер_заказа, budgetitem_title,companyaccount_title, partner_title, person_title, комментарий, коммент_директор, amount)"
+}

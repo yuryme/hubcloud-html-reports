@@ -1,0 +1,2 @@
+﻿деньги | period (&dateStart, &dateFinish) |Select(id, registrator, date, budgetitem, companyaccount, partner, person,  номер_заказа, комментарий, коммент_директор) | Gettitle() as t1;
+TempTable.t1 | Select (id, date, registrator_title, номер_заказа, budgetitem_title,companyaccount_title, partner_title, person_title, комментарий, коммент_директор, amount)

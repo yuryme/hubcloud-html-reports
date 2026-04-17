@@ -1,0 +1,304 @@
+<div id="root" class="bt-header bt-list">
+  <div class="bread-report-page">
+    <header class="bread-report-head">
+      <div class="bread-page-shell bread-report-top">
+        <h2 class="bread-report-title" v-text="reportTitle"></h2>
+        <button class="btn btn-default bread-settings-btn" type="button" v-on:click="toggleSettingsPanel">
+          Настройки
+          <span class="glyphicon" :class="settingsPanelOpen ? 'glyphicon-chevron-right' : 'glyphicon-chevron-left'"></span>
+        </button>
+      </div>
+    </header>
+
+    <section class="bread-toolbar-card">
+      <div class="bread-page-shell bread-layout">
+        <div class="bread-main-area">
+          <div class="bread-toolbar-row">
+            <div class="bread-actions">
+              <button class="btn btn-primary" v-on:click="loadReport">
+                <span class="glyphicon glyphicon-triangle-right"></span>
+                <span>Отчет</span>
+              </button>
+              <button class="btn btn-success" v-on:click="exportToExcel">
+                <span class="glyphicon glyphicon-save"></span>
+                <span>Excel</span>
+              </button>
+              <button class="btn btn-default bread-action-more" type="button" v-on:click="printReport">
+                <span class="glyphicon glyphicon-print"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="bread-table-shell">
+            <div class="bread-table-scroll">
+              <div class="bread-table-inner">
+                <table class="table table-sm bread-matrix-table">
+                  <colgroup>
+                    <col class="bread-col-rownum">
+                    <col class="bread-col-name">
+                    <col
+                      v-for="column in visibleColumns"
+                      :key="'col-' + column.key"
+                      class="bread-col-value">
+                  </colgroup>
+                  <thead>
+                    <tr class="bread-number-row">
+                      <th class="bread-rownum-head"></th>
+                      <th class="bread-sticky-left" v-text="rowHeaderNumberLabel"></th>
+                      <th
+                        v-for="(column, index) in visibleColumns"
+                        :key="'num-' + column.key"
+                        class="bread-number-head"
+                        v-text="index + 1">
+                      </th>
+                    </tr>
+                    <tr class="bread-header-row">
+                      <th class="bread-rownum-head"></th>
+                      <th class="bread-sticky-left" v-text="rowHeaderLabel"></th>
+                      <th
+                        v-for="column in visibleColumns"
+                        :key="'head-' + column.key"
+                        v-text="column.label">
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-if="visibleTreeRows.length === 0 && !isWaiting">
+                      <td :colspan="visibleColumns.length + 2" class="bread-empty-cell">Нет данных</td>
+                    </tr>
+                    <tr
+                      v-for="(row, index) in visibleTreeRows"
+                      :key="row.pathKey"
+                      :class="rowClass(row)"
+                      v-on:click="onTreeRowClick(row)">
+                      <td class="bread-rownum" v-text="index + 1"></td>
+                      <td class="bread-sticky-left bread-name-cell">
+                        <button
+                          v-if="row.hasChildren"
+                          type="button"
+                          class="bread-toggle-btn"
+                          v-on:click="toggleRow(row.pathKey)">
+                          <span
+                            class="glyphicon"
+                            :class="isExpanded(row.pathKey) ? 'glyphicon-chevron-down' : 'glyphicon-chevron-right'">
+                          </span>
+                        </button>
+                        <span v-else class="bread-toggle-spacer"></span>
+                        <span class="bread-row-label" :style="{ paddingLeft: (row.depth * 18) + 'px' }" v-text="row.label"></span>
+                      </td>
+                      <td
+                        v-for="column in visibleColumns"
+                        :key="row.pathKey + '-' + column.key"
+                        class="bread-value-cell"
+                        v-text="formatValue(row.aggregates[column.key])">
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="bread-side-panel" :class="{ 'is-collapsed': !settingsPanelOpen }">
+          <div class="bread-side-section">
+            <div class="bread-side-title">
+              <span class="glyphicon glyphicon-plus"></span>
+              <span>Строки</span>
+            </div>
+            <div class="bread-side-add">
+              <select class="form-control bread-side-select" v-model="pendingRowKey">
+                <option value="">Выберите поле</option>
+                <option
+                  v-for="option in availableRowOptions"
+                  :key="'row-option-' + option.key"
+                  :value="option.key"
+                  v-text="option.label">
+                </option>
+              </select>
+              <button class="btn btn-default bread-add-btn" type="button" v-on:click="addAxisItem('rows')">Добавить</button>
+            </div>
+            <div class="bread-side-empty" v-if="selectedRows.length === 0">Не выбрано</div>
+            <div
+              v-for="(item, index) in selectedRows"
+              :key="'row-selected-' + item.key"
+              class="bread-side-item">
+              <span v-text="(index + 1) + '. ' + item.label"></span>
+              <div class="bread-side-actions">
+                <button type="button" class="bread-item-btn is-remove" v-on:click="removeAxisItem('rows', index)">x</button>
+                <button type="button" class="bread-item-btn" v-on:click="moveAxisItem('rows', index, -1)">↓</button>
+                <button type="button" class="bread-item-btn" v-on:click="moveAxisItem('rows', index, 1)">↑</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bread-side-section">
+            <div class="bread-side-title">
+              <span class="glyphicon glyphicon-plus"></span>
+              <span>Колонки</span>
+            </div>
+            <div class="bread-side-add">
+              <select class="form-control bread-side-select" v-model="pendingColumnKey">
+                <option value="">Значение не выбрано</option>
+                <option
+                  v-for="option in availableColumnOptions"
+                  :key="'column-option-' + option.key"
+                  :value="option.key"
+                  v-text="option.label">
+                </option>
+              </select>
+              <button class="btn btn-default bread-add-btn" type="button" v-on:click="addAxisItem('columns')">Добавить</button>
+            </div>
+            <div class="bread-side-empty" v-if="selectedColumns.length === 0">Значение не выбрано</div>
+            <div
+              v-for="(item, index) in selectedColumns"
+              :key="'column-selected-' + item.key"
+              class="bread-side-item">
+              <span v-text="(index + 1) + '. ' + item.label"></span>
+              <div class="bread-side-actions">
+                <button type="button" class="bread-item-btn is-remove" v-on:click="removeAxisItem('columns', index)">x</button>
+                <button type="button" class="bread-item-btn" v-on:click="moveAxisItem('columns', index, -1)">↓</button>
+                <button type="button" class="bread-item-btn" v-on:click="moveAxisItem('columns', index, 1)">↑</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bread-side-section">
+            <div class="bread-side-title">
+              <span class="glyphicon glyphicon-plus"></span>
+              <span>Значения</span>
+            </div>
+            <div class="bread-side-add">
+              <select class="form-control bread-side-select" v-model="pendingValueKey">
+                <option value="">Выберите показатель</option>
+                <option
+                  v-for="option in availableValueOptions"
+                  :key="'value-option-' + option.key"
+                  :value="option.key"
+                  v-text="option.label">
+                </option>
+              </select>
+              <button class="btn btn-default bread-add-btn" type="button" v-on:click="addAxisItem('values')">Добавить</button>
+            </div>
+            <div class="bread-side-empty" v-if="selectedValues.length === 0">Не выбрано</div>
+            <div
+              v-for="(item, index) in selectedValues"
+              :key="'value-selected-' + item.key"
+              class="bread-side-item">
+              <span v-text="(index + 1) + '. ' + item.label"></span>
+              <div class="bread-side-actions">
+                <button type="button" class="bread-item-btn is-remove" v-on:click="removeAxisItem('values', index)">x</button>
+                <button type="button" class="bread-item-btn" v-on:click="moveAxisItem('values', index, -1)">↓</button>
+                <button type="button" class="bread-item-btn" v-on:click="moveAxisItem('values', index, 1)">↑</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div
+      v-if="relationModal.visible"
+      class="bread-modal-backdrop"
+      v-on:click="closeRelationModal">
+      <div class="bread-modal" v-on:click.stop>
+        <div class="bread-modal-head">
+          <div>
+            <div class="bread-modal-title" v-text="relationModal.title"></div>
+            <div class="bread-modal-subtitle">Дерево связей для выбранной номенклатуры первого уровня</div>
+          </div>
+          <button class="btn btn-default" type="button" v-on:click="closeRelationModal">Закрыть</button>
+        </div>
+        <div class="bread-modal-body">
+          <div class="bread-modal-tabs">
+            <button
+              type="button"
+              class="bread-modal-tab"
+              :class="{ 'is-active': relationModal.viewMode === 'table' }"
+              v-on:click="setRelationViewMode('table')">
+              Таблица
+            </button>
+            <button
+              type="button"
+              class="bread-modal-tab"
+              :class="{ 'is-active': relationModal.viewMode === 'tree' }"
+              v-on:click="setRelationViewMode('tree')">
+              Дерево
+            </button>
+            <button
+              type="button"
+              class="bread-modal-tab"
+              :class="{ 'is-active': relationModal.viewMode === 'flow' }"
+              v-on:click="setRelationViewMode('flow')">
+              Блок-схема
+            </button>
+          </div>
+
+          <div class="bread-modal-table-wrap" v-if="relationModal.rows.length > 0 && relationModal.viewMode === 'table'">
+            <table class="table table-sm bread-modal-table">
+              <thead>
+                <tr>
+                  <th>Уровень</th>
+                  <th>Связь</th>
+                  <th>Кол-во</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, index) in relationModal.rows" :key="'table-' + index">
+                  <td v-text="row.depth + 1"></td>
+                  <td v-text="row.label"></td>
+                  <td class="bread-modal-table-number" v-text="formatValue(row.value)"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="bread-modal-tree" v-else-if="relationModal.rows.length > 0 && relationModal.viewMode === 'tree'">
+            <div
+              v-for="(row, index) in relationModal.rows"
+              :key="'relation-' + index"
+              class="bread-modal-tree-row"
+              :class="'bread-modal-depth-' + row.depth">
+              <div class="bread-modal-tree-branch" :style="{ '--bread-tree-offset': (row.depth * 28) + 'px' }">
+                <span class="bread-modal-tree-line" v-if="row.depth > 0"></span>
+                <span class="bread-modal-tree-node"></span>
+                <span class="bread-modal-tree-label" v-text="row.label"></span>
+              </div>
+              <span class="bread-modal-tree-value" v-text="formatValue(row.value)"></span>
+            </div>
+          </div>
+          <div class="bread-flow-wrap" v-else-if="relationModal.rows.length > 0 && relationModal.viewMode === 'flow'">
+            <div class="bread-flow-root">
+              <div class="bread-flow-card bread-flow-card-root">
+                <div class="bread-flow-card-title" v-text="relationModal.flow.root.label"></div>
+                <div class="bread-flow-card-value" v-text="formatValue(relationModal.flow.root.value)"></div>
+              </div>
+            </div>
+            <div class="bread-flow-columns">
+              <div
+                v-for="(dough, index) in relationModal.flow.branches"
+                :key="'flow-' + index"
+                class="bread-flow-column">
+                <div class="bread-flow-link"></div>
+                <div class="bread-flow-card bread-flow-card-branch">
+                  <div class="bread-flow-card-title" v-text="dough.label"></div>
+                  <div class="bread-flow-card-value" v-text="formatValue(dough.value)"></div>
+                </div>
+                <div class="bread-flow-children">
+                  <div
+                    v-for="(ingredient, childIndex) in dough.children"
+                    :key="'flow-child-' + index + '-' + childIndex"
+                    class="bread-flow-card bread-flow-card-leaf">
+                    <div class="bread-flow-card-title" v-text="ingredient.label"></div>
+                    <div class="bread-flow-card-value" v-text="formatValue(ingredient.value)"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="bread-modal-empty">Нет данных по выбранной номенклатуре</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

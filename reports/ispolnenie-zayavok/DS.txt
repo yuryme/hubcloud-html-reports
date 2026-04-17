@@ -1,0 +1,1 @@
+﻿исполнение_заявок | Period(&dateStart,&dateFinish ) | partner(&клиент) | GroupBy(partner, номенклатура, колво) | GetTitle() | Having (колво > 0)

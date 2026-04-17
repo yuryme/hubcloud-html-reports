@@ -1,0 +1,206 @@
+<div id="root" class="bt-header bt-list">
+  <div class="page-shell">
+    <main class="content-panel">
+      <header class="report-title-card">
+        <p class="eyebrow">Executive Workspace</p>
+        <h1><span v-text="reportTitle"></span></h1>
+        <p class="hero-copy">
+          Стартовая версия отчета с двумя вкладками. На первом этапе подключена таблица
+          <strong>Расходы DS</strong>, которая выводит все поля текущего datasource без сокращений и переименований.
+        </p>
+      </header>
+
+      <section class="toolbar-row" aria-label="Панель отчета">
+        <div class="toolbar-card action-toolbar">
+          <button type="button" class="primary-btn" v-on:click="loadReport">Отчет</button>
+          <button type="button" class="secondary-btn" v-on:click="exportToExcel">Экспорт</button>
+        </div>
+
+        <div class="toolbar-card period-toolbar" ref="periodMenuShell">
+          <button type="button" class="period-arrow-btn" :disabled="!canShiftPeriod" v-on:click="shiftPeriod(-1)">&lsaquo;</button>
+
+          <div class="period-picker">
+            <button type="button" class="period-toggle" v-on:click.stop="togglePeriodMenu">
+              <span class="period-inline-label">Период</span>
+              <strong v-text="periodDisplayLabel"></strong>
+            </button>
+
+            <div v-if="showPeriodMenu" class="period-menu">
+              <button
+                v-for="mode in periodModes"
+                :key="mode.key"
+                type="button"
+                class="period-option"
+                :class="{ 'is-active': periodMode === mode.key }"
+                v-on:click="selectPeriodMode(mode.key)">
+                <span v-text="mode.label"></span>
+              </button>
+
+              <div v-if="periodMode === 'custom'" class="custom-period-panel">
+                <div class="custom-period-row">
+                  <input type="date" class="period-input" v-model="customDateStart">
+                </div>
+                <div class="custom-period-row">
+                  <input type="date" class="period-input" v-model="customDateFinish">
+                </div>
+                <div class="custom-period-actions">
+                  <button type="button" class="primary-btn primary-btn-sm" v-on:click="applyCustomPeriod">OK</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="period-arrow-btn" :disabled="!canShiftPeriod" v-on:click="shiftPeriod(1)">&rsaquo;</button>
+        </div>
+      </section>
+
+      <section class="stats-grid" aria-label="Ключевые показатели">
+        <article class="stat-card accent-a">
+          <p class="stat-label">Строки</p>
+          <strong class="stat-value" v-text="rows.length"></strong>
+          <span class="stat-meta">Текущее количество строк в активной вкладке</span>
+        </article>
+
+        <article class="stat-card accent-b">
+          <p class="stat-label">Колонки DS</p>
+          <strong class="stat-value" v-text="currentColumns.length"></strong>
+          <span class="stat-meta">Все поля текущего datasource без сокращений</span>
+        </article>
+
+        <article class="stat-card accent-c">
+          <p class="stat-label">Сумма amount</p>
+          <strong class="stat-value" v-text="formatTotalAmount(totalAmount)"></strong>
+          <span class="stat-meta">Итог по колонке amount для первой таблицы</span>
+        </article>
+      </section>
+
+      <section class="table-section">
+        <div class="table-header">
+          <div>
+            <p class="eyebrow">Dataset</p>
+            <h2 v-text="activeTabTitle"></h2>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Переключение вкладок">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              type="button"
+              class="tab-button"
+              :class="{ 'is-active': activeTab === tab.key }"
+              :aria-selected="activeTab === tab.key ? 'true' : 'false'"
+              v-on:click="switchTab(tab.key)">
+              <span v-text="tab.title"></span>
+            </button>
+          </div>
+        </div>
+
+        <section v-if="activeTab === 'expenses'" class="tab-panel is-active" role="tabpanel">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th
+                    v-for="col in currentColumns"
+                    :key="'h-' + col.key"
+                    :class="col.alignClass || ''"
+                    v-text="col.label">
+                  </th>
+                  <th class="spacer-col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="isWaiting">
+                  <td :colspan="currentColumns.length + 2" class="empty-row">Загрузка...</td>
+                </tr>
+                <tr v-else-if="rows.length === 0">
+                  <td :colspan="currentColumns.length + 2" class="empty-row">Нет данных</td>
+                </tr>
+                <tr v-for="(row, idx) in rows" :key="'r-' + idx">
+                  <td class="row-index" v-text="idx + 1"></td>
+                  <td
+                    v-for="col in currentColumns"
+                    :key="'c-' + idx + '-' + col.key"
+                    :class="col.alignClass || ''"
+                    v-text="formatCell(col, row[col.key])">
+                  </td>
+                  <td class="spacer-col"></td>
+                </tr>
+              </tbody>
+              <tfoot v-if="rows.length > 0 && !isWaiting">
+                <tr class="total-row">
+                  <td class="row-index"></td>
+                  <td
+                    v-for="col in currentColumns"
+                    :key="'t-' + col.key"
+                    :class="col.alignClass || ''"
+                    v-text="totalCellValue(col)">
+                  </td>
+                  <td class="spacer-col"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+
+        <section v-else class="tab-panel is-active" role="tabpanel">
+          <div class="empty-state">
+            <p class="eyebrow">Next Step</p>
+            <h3>КП</h3>
+            <p>Вторая вкладка уже заведена в структуру отчета. После получения второго datasource сюда подключим отдельную таблицу.</p>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="section-heading">
+          <p class="eyebrow">Settings</p>
+          <h2>Настройки</h2>
+        </div>
+
+        <section class="settings-group">
+          <div class="settings-group-header">
+            <p class="eyebrow">Filters</p>
+            <h3>Фильтры</h3>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-card">
+              <span class="info-label">Период</span>
+              <strong class="info-value" v-text="periodDisplayLabel"></strong>
+            </div>
+            <div class="info-card">
+              <span class="info-label">Доп. фильтры</span>
+              <strong class="info-value">Не заданы</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <div class="settings-group-header">
+            <p class="eyebrow">View</p>
+            <h3>Параметры отображения</h3>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-card">
+              <span class="info-label">Вкладки</span>
+              <strong class="info-value" v-text="tabs.length"></strong>
+            </div>
+            <div class="info-card">
+              <span class="info-label">Колонки DS</span>
+              <strong class="info-value" v-text="currentColumns.length"></strong>
+            </div>
+            <div class="info-card">
+              <span class="info-label">Строки</span>
+              <strong class="info-value" v-text="rows.length"></strong>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,231 @@
+﻿<div id="root" class="bt-header bt-list">
+  <div class="request-report-page">
+    <header class="request-report-head">
+      <div class="request-page-container request-report-top">
+        <h2 class="request-report-title" v-text="reportTitle"></h2>
+        <button class="btn btn-default request-settings-btn" type="button">Настройки <span class="glyphicon glyphicon-chevron-right"></span></button>
+      </div>
+    </header>
+
+    <section class="request-toolbar-card">
+      <div class="request-page-container request-toolbar-layout">
+        <div class="request-main-area">
+          <div class="request-toolbar-row">
+            <div class="request-actions">
+              <button class="btn btn-primary" v-on:click="loadReport">
+                <span class="glyphicon glyphicon-triangle-right"></span>
+                <span>Отчет</span>
+              </button>
+              <button class="btn btn-success" v-on:click="exportToExcel">
+                <span class="glyphicon glyphicon-save"></span>
+                <span>Excel</span>
+              </button>
+              <button class="btn btn-default request-action-more" type="button">
+                <span class="glyphicon glyphicon-chevron-down"></span>
+              </button>
+            </div>
+
+            <div class="request-date-strip" ref="periodMenuShell">
+              <button
+                type="button"
+                class="request-date-nav"
+                :disabled="!canShiftPeriod"
+                v-on:click="shiftPeriod(-1)">
+                &#x2039;
+              </button>
+
+              <div class="request-period-picker">
+                <button type="button" class="request-date-value request-period-toggle" v-on:click.stop="togglePeriodMenu">
+                  <span v-text="periodDisplayLabel"></span>
+                  <span class="glyphicon glyphicon-chevron-down"></span>
+                </button>
+
+                <div v-if="showPeriodMenu" class="request-period-menu">
+                  <button
+                    v-for="mode in periodModes"
+                    :key="mode.key"
+                    type="button"
+                    class="request-period-option"
+                    :class="{ 'is-active': periodMode === mode.key }"
+                    v-on:click="selectPeriodMode(mode.key)">
+                    <span v-text="mode.label"></span>
+                  </button>
+
+                  <div v-if="periodMode === 'custom'" class="request-custom-period">
+                    <div class="request-custom-period-row">
+                      <input class="form-control" type="date" v-model="customDateStart">
+                    </div>
+                    <div class="request-custom-period-row">
+                      <input class="form-control" type="date" v-model="customDateFinish">
+                    </div>
+                    <div class="request-custom-period-actions">
+                      <button type="button" class="btn btn-primary btn-xs" v-on:click="applyCustomPeriod">OK</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="request-date-nav"
+                :disabled="!canShiftPeriod"
+                v-on:click="shiftPeriod(1)">
+                &#x203A;
+              </button>
+            </div>
+          </div>
+
+          <div class="request-table-shell">
+            <div class="request-table-scroll-y">
+              <div class="request-table-scroll-x">
+                <table class="table table-sm request-matrix-table">
+              <thead>
+                <tr class="request-number-row">
+                  <th class="request-rownum-head"></th>
+                  <th
+                    v-for="(col, idx) in visibleColumns"
+                    :key="'n-' + col.key"
+                    :class="{ 'request-sticky-right': col.key === '__row_total__' }"
+                    v-text="idx + 1">
+                  </th>
+                </tr>
+                <tr class="request-header-row">
+                  <th class="request-rownum-head"></th>
+                  <th class="request-sticky-left" v-text="rowAxisLabel"></th>
+                  <th
+                    v-for="col in dynamicColumns"
+                    :key="'h-' + col.key"
+                    :class="{ 'request-sticky-right': col.key === '__row_total__' }"
+                    v-text="col.label">
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="pivotRows.length === 0 && !isWaiting">
+                  <td :colspan="visibleColumns.length + 1" class="request-empty-cell">Нет данных</td>
+                </tr>
+                <tr
+                  v-for="(row, rowIndex) in pivotRows"
+                  :key="'r-' + rowIndex"
+                  :class="{ 'request-hover-row': hoveredRowIndex === rowIndex }"
+                  v-on:mouseenter="onRowMouseEnter(row, rowIndex, $event)"
+                  v-on:mousemove="onRowMouseMove($event)"
+                  v-on:mouseleave="onRowMouseLeave"
+                  v-on:click="onRowClick(row)">
+                  <td class="request-rownum" v-text="rowIndex + 1"></td>
+                  <td class="request-sticky-left request-client-cell" v-text="row.row_label"></td>
+                  <td
+                    v-for="col in dynamicColumns"
+                    :key="'c-' + rowIndex + '-' + col.key"
+                    :class="['request-value-cell', { 'request-sticky-right': col.key === '__row_total__' }]"
+                    v-text="formatPivotValue(row.values[col.key])">
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot v-if="pivotRows.length > 0">
+                <tr class="request-total-row">
+                  <td class="request-rownum" v-text="pivotRows.length + 1"></td>
+                  <td class="request-sticky-left">Итого</td>
+                  <td
+                    v-for="col in dynamicColumns"
+                    :key="'t-' + col.key"
+                    :class="['request-value-cell', { 'request-sticky-right': col.key === '__row_total__' }]"
+                    v-text="formatPivotValue(totalsRow[col.key])">
+                  </td>
+                </tr>
+              </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="hoverTooltip.visible"
+          class="request-hover-tooltip"
+          :style="{ left: hoverTooltip.left + 'px', top: hoverTooltip.top + 'px' }">
+          <div class="request-hover-tooltip-title" v-text="hoverTooltip.label"></div>
+          <div class="request-hover-tooltip-value">
+            Сумма по строке:
+            <strong v-text="formatPivotValue(hoverTooltip.total)"></strong>
+          </div>
+        </div>
+
+        <div
+          v-if="detailModal.visible || detailModal.closing"
+          class="request-detail-modal-backdrop"
+          :class="{ 'is-closing': detailModal.closing }"
+          v-on:click="closeDetailModal">
+          <div class="request-detail-modal" :class="{ 'is-closing': detailModal.closing }" v-on:click.stop>
+            <div class="request-detail-modal-head">
+              <div>
+                <div class="request-detail-modal-title" v-text="detailModal.title"></div>
+                <div class="request-detail-modal-subtitle" v-text="detailModal.subtitle"></div>
+              </div>
+              <button type="button" class="btn btn-default btn-sm" v-on:click="closeDetailModal">Закрыть</button>
+            </div>
+
+            <div class="request-detail-modal-body">
+              <table class="table table-bordered table-condensed request-detail-table">
+                <thead>
+                  <tr>
+                    <th v-text="detailModal.dimensionLabel"></th>
+                    <th>Кол-во</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="detailModal.items.length === 0">
+                    <td colspan="2" class="request-detail-empty">Нет данных</td>
+                  </tr>
+                  <tr v-for="(item, idx) in detailModal.items" :key="'detail-' + idx">
+                    <td v-text="item.label"></td>
+                    <td class="request-detail-number" v-text="formatPivotValue(item.qty)"></td>
+                  </tr>
+                </tbody>
+                <tfoot v-if="detailModal.items.length > 0">
+                  <tr>
+                    <td>Итого</td>
+                    <td class="request-detail-number" v-text="formatPivotValue(detailModal.total)"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <aside class="request-side-panel">
+          <div class="request-filter-block">
+            <label class="request-side-label">Клиент</label>
+            <select class="form-control" v-model="filterValues.клиент" v-on:change="onFilterChange('клиент')">
+              <option
+                v-for="opt in filterOptions.клиент || []"
+                :key="'client-' + opt.value"
+                :value="opt.value"
+                v-text="opt.title">
+              </option>
+            </select>
+          </div>
+
+          <div class="request-side-section">
+            <div class="request-side-title">Строки</div>
+            <select class="form-control request-axis-select" v-model="rowAxis" v-on:change="onAxisChange('row')">
+              <option v-for="opt in rowAxisOptions" :key="'row-' + opt.key" :value="opt.key" v-text="opt.label"></option>
+            </select>
+          </div>
+
+          <div class="request-side-section">
+            <div class="request-side-title">Колонки</div>
+            <select class="form-control request-axis-select" v-model="columnAxis" v-on:change="onAxisChange('column')">
+              <option v-for="opt in columnAxisOptions" :key="'col-' + opt.key" :value="opt.key" v-text="opt.label"></option>
+            </select>
+          </div>
+
+          <div class="request-side-section">
+            <div class="request-side-title">Значения</div>
+            <div class="request-side-chip">1. Кол-во</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+</div>

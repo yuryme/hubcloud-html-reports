@@ -1,0 +1,19 @@
+{
+  "title": "Рабочее место руководителя",
+  "tabs": [
+    { "key": "expenses", "title": "По документам" },
+    { "key": "kp", "title": "По статьям" },
+    { "key": "kpi", "title": "По КП" }
+  ],
+  "columns": [
+    { "key": "registrator_title", "title": "Операция" },
+    { "key": "date", "title": "Дата" },
+    { "key": "budgetitem_title", "title": "Статья" },
+    { "key": "номер_заказа_title", "title": "Номер заказа" },
+    { "key": "комментарий", "title": "Комментарий" },
+    { "key": "коммент_директор", "title": "Комментарий директора" },
+    { "key": "amount", "title": "Сумма, руб", "isTotal": true }
+  ],
+  "datasourceExpression": "деньги | period (&dateStart, &dateFinish) | номер_заказа(&orderId) | template(&registratorTemplateId) | registrator(&registratorId) |Select(id, registrator, date, row, budgetitem, companyaccount, partner, person, template, amount,  номер_заказа, комментарий, коммент_директор) | Gettitle() as t1;\nTempTable.t1 | Select (id, date, registrator, row, registrator_title, budgetitem, budgetitem_title, template, номер_заказа, номер_заказа_title, комментарий, коммент_директор, amount)",
+  "datasourceExpressionKpi": "operation.кп |  заказ_договор (&orderId) | Select (date, заказ_договор, заказ_договор_title, коммент_директор) | Gettitle() \n| AddColumn(dateStart, DateTime, &dateStart) | AddColumn(dateFinish_, DateTime, &dateFinish) | ComputeFunction(dateFinish, dateFinish_.EndDay()) \n| Having (date>=dateStart AND date<=dateFinish)"
+}

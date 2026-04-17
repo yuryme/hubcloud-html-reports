@@ -10,20 +10,8 @@
 - Owner: user+agent
 
 ```dsl
-catalog.номенклатура | Select (id as номенклатура, title as номенклатура_title, группа) | Gettitle() as t1;
-
-движение_ном | склад (&склад)  | Period(,&dateStart.EndDay().AddDays(-1)) | GroupBy(номенклатура, колво as на_начало_)  as на_начало;
-движение_ном | склад (&склад) | операция (11) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as приход_, операция)  | GroupBy (номенклатура, приход_, операция)  as приход;
-движение_ном | склад (&склад)  | операция (14)  | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as расход_, операция)  | GroupBy (номенклатура, расход_, операция)  as расход;
-движение_ном | склад (&склад)  | операция (15)  | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as возврат_, операция)  | GroupBy (номенклатура, возврат_, операция)  as возврат;
-движение_ном | склад (&склад) | операция (10) | Period(&dateStart, &dateFinish) | Select (номенклатура, колво as инвентаризация_, операция)  | GroupBy (номенклатура, инвентаризация_, операция)  as инвентаризация;
-TempTable.на_начало | FullJoinAuto(приход, приход.номенклатура =номенклатура) |  FullJoinAuto(расход, расход.номенклатура =номенклатура) |  FullJoinAuto(возврат, возврат.номенклатура =номенклатура)
-|  FullJoinAuto(инвентаризация, инвентаризация.номенклатура =номенклатура)
-| AddColumn (x, number, 0) | Coalesce (приход, приход_, x) | Coalesce (расход__, расход_, x)  | Coalesce (на_начало, на_начало_, x) | Coalesce (возврат__, возврат_, x) |  Coalesce (инвентаризация, инвентаризация_, x)
-| Compute(расход, расход__ * -1) | Compute(возврат, возврат__* -1)
-| Compute(на_конец, на_начало + приход - расход - возврат+инвентаризация) | DeleteColumn (на_начало_, приход_, расход_, расход__, возврат_, возврат__, инвентаризация_, x)
-| LeftJoinAuto(t1, t1.номенклатура =номенклатура) | группа (&группа) 
-| Compute(x, на_начало*на_начало+приход*приход+расход*расход+на_конец*на_конец+возврат*возврат+инвентаризация*инвентаризация) | Having (x>0) | OrderBy (номенклатура_title)
+деньги | period (&dateStart, &dateFinish) |Select(id, registrator, date, budgetitem, companyaccount, partner, person,  номер_заказа, комментарий, коммент_директор) | Gettitle() as t1;
+TempTable.t1 | Select (id, date, registrator_title, номер_заказа, budgetitem_title,companyaccount_title, partner_title, person_title, комментарий, коммент_директор, amount)
 ```
 
 ## Block: product_group

@@ -1,0 +1,66 @@
+{
+  "reportId": "bread-recipes-unit",
+  "reportTitle": "Отчет: Рецепты хлеба (на 1 ед)",
+  "dsFile": "DS.txt",
+  "mockDataFile": "mock-data.json",
+  "templateHint": "bread-tree-matrix",
+  "filters": [],
+  "columns": [
+    {
+      "key": "bread_item",
+      "field": "номенклатура_title",
+      "label": "Номенклатура 1 (хлеб)",
+      "type": "dimension"
+    },
+    {
+      "key": "dough_item",
+      "field": "номенклатура_вход_title",
+      "label": "Номенклатура 2 (Т)",
+      "type": "dimension"
+    },
+    {
+      "key": "ingredient_item",
+      "field": "номенклатура_вх_2_передел_title",
+      "label": "Номенклатура 3 (И)",
+      "type": "dimension"
+    },
+    {
+      "key": "bread_group",
+      "field": "группа_title",
+      "label": "Группа 1 (хлеб)",
+      "type": "dimension"
+    },
+    {
+      "key": "dough_group",
+      "field": "группа_1_title",
+      "label": "Группа 2 (Т)",
+      "type": "dimension"
+    },
+    {
+      "key": "ingredient_group",
+      "field": "группа_2_title",
+      "label": "Группа 3 (И)",
+      "type": "dimension"
+    },
+    {
+      "key": "qty_per_unit",
+      "field": "итого_итого",
+      "label": "Кол-во г (на 1 ед)",
+      "type": "value"
+    }
+  ],
+  "rowMap": {
+    "bread_item": ["номенклатура_title"],
+    "dough_item": ["номенклатура_вход_title", "номенклатура_вход", "номенклатура_2_title", "номенклатура_2"],
+    "ingredient_item": ["номенклатура_вх_2_передел_title", "номенклатура_вх_2_передел", "номенклатура_вх_2_пер_title", "номенклатура_вх_2_пер", "номенклатура_вход_2_title", "номенклатура_вход_2"],
+    "bread_group": ["группа_title", "группа"],
+    "dough_group": ["группа_1_title", "группа_1"],
+    "ingredient_group": ["группа_2_title", "группа_2"],
+    "qty_per_unit": ["итого_итого", "итого", "колво_2_итого", "колво_всего", "колво_на_1_ед", "колво", "qty"]
+  },
+  "layout": {
+    "rows": ["bread_item", "dough_item", "ingredient_item"],
+    "columns": [],
+    "values": ["qty_per_unit"]
+  }
+}
