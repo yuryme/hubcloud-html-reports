@@ -17,7 +17,13 @@
         </div>
 
         <div class="toolbar-card period-toolbar" ref="periodMenuShell">
-          <button type="button" class="period-arrow-btn" :disabled="!canShiftPeriod" v-on:click="shiftPeriod(-1)">&lsaquo;</button>
+          <button
+            type="button"
+            class="period-arrow-btn"
+            :disabled="!canShiftPeriod"
+            v-on:click="shiftPeriod(-1)">
+            &lsaquo;
+          </button>
 
           <div class="period-picker">
             <button type="button" class="period-toggle" v-on:click.stop="togglePeriodMenu">
@@ -50,30 +56,17 @@
             </div>
           </div>
 
-          <button type="button" class="period-arrow-btn" :disabled="!canShiftPeriod" v-on:click="shiftPeriod(1)">&rsaquo;</button>
+          <button
+            type="button"
+            class="period-arrow-btn"
+            :disabled="!canShiftPeriod"
+            v-on:click="shiftPeriod(1)">
+            &rsaquo;
+          </button>
         </div>
       </section>
 
-      <section class="stats-grid" aria-label="Ключевые показатели">
-        <article class="stat-card accent-a">
-          <p class="stat-label">Строки</p>
-          <strong class="stat-value" v-text="rows.length"></strong>
-          <span class="stat-meta">Текущее количество строк в активной вкладке</span>
-        </article>
-
-        <article class="stat-card accent-b">
-          <p class="stat-label">Колонки DS</p>
-          <strong class="stat-value" v-text="currentColumns.length"></strong>
-          <span class="stat-meta">Все поля текущего datasource без сокращений</span>
-        </article>
-
-        <article class="stat-card accent-c">
-          <p class="stat-label">Сумма amount</p>
-          <strong class="stat-value" v-text="formatTotalAmount(totalAmount)"></strong>
-          <span class="stat-meta">Итог по колонке amount для первой таблицы</span>
-        </article>
-      </section>
-
+      <div class="print-area bt-list-body">
       <section class="table-section">
         <div class="table-header">
           <div>
@@ -96,51 +89,50 @@
         </div>
 
         <section v-if="activeTab === 'expenses'" class="tab-panel is-active" role="tabpanel">
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th
-                    v-for="col in currentColumns"
-                    :key="'h-' + col.key"
-                    :class="col.alignClass || ''"
-                    v-text="col.label">
-                  </th>
-                  <th class="spacer-col"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="isWaiting">
-                  <td :colspan="currentColumns.length + 2" class="empty-row">Загрузка...</td>
-                </tr>
-                <tr v-else-if="rows.length === 0">
-                  <td :colspan="currentColumns.length + 2" class="empty-row">Нет данных</td>
-                </tr>
-                <tr v-for="(row, idx) in rows" :key="'r-' + idx">
-                  <td class="row-index" v-text="idx + 1"></td>
-                  <td
-                    v-for="col in currentColumns"
-                    :key="'c-' + idx + '-' + col.key"
-                    :class="col.alignClass || ''"
-                    v-text="formatCell(col, row[col.key])">
-                  </td>
-                  <td class="spacer-col"></td>
-                </tr>
-              </tbody>
-              <tfoot v-if="rows.length > 0 && !isWaiting">
-                <tr class="total-row">
-                  <td class="row-index"></td>
-                  <td
-                    v-for="col in currentColumns"
-                    :key="'t-' + col.key"
-                    :class="col.alignClass || ''"
-                    v-text="totalCellValue(col)">
-                  </td>
-                  <td class="spacer-col"></td>
-                </tr>
-              </tfoot>
-            </table>
+          <div class="table-scroll-y">
+            <div class="table-scroll-x">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th
+                      v-for="col in currentColumns"
+                      :key="'h-' + col.key"
+                      :class="col.alignClass || ''"
+                      v-text="col.label">
+                    </th>
+                    <th class="spacer-col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="rows.length === 0 && !isWaiting">
+                    <td :colspan="currentColumns.length + 2" class="empty-row">Нет данных</td>
+                  </tr>
+                  <tr v-for="(row, idx) in rows" :key="'r-' + idx">
+                    <td class="row-index" v-text="idx + 1"></td>
+                    <td
+                      v-for="col in currentColumns"
+                      :key="'c-' + idx + '-' + col.key"
+                      :class="col.alignClass || ''"
+                      v-text="formatCell(col, row[col.key])">
+                    </td>
+                    <td class="spacer-col"></td>
+                  </tr>
+                </tbody>
+                <tfoot v-if="rows.length > 0">
+                  <tr class="total-row">
+                    <td class="row-index"></td>
+                    <td
+                      v-for="col in currentColumns"
+                      :key="'t-' + col.key"
+                      :class="col.alignClass || ''"
+                      v-text="totalCellValue(col)">
+                    </td>
+                    <td class="spacer-col"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -148,57 +140,57 @@
           <div class="empty-state">
             <p class="eyebrow">Next Step</p>
             <h3>КП</h3>
-            <p>Вторая вкладка уже заведена в структуру отчета. После получения второго datasource сюда подключим отдельную таблицу.</p>
+            <p>
+              Эта вкладка уже заведена в структуру отчета. После получения второго datasource
+              сюда подключим отдельную таблицу.
+            </p>
           </div>
         </section>
       </section>
+      </div>
     </main>
 
-    <aside class="side-panel">
-      <div class="panel-card">
-        <div class="section-heading">
-          <p class="eyebrow">Settings</p>
-          <h2>Настройки</h2>
+    <aside
+      class="side-panel floating-status-shell"
+      :class="{ 'is-dragging': statusPanelDragging }"
+      :style="statusPanelStyle"
+      ref="statusPanel">
+      <div class="panel-card floating-status-card">
+        <div
+          class="section-heading status-drag-handle"
+          v-on:mousedown="startStatusPanelDrag"
+          v-on:touchstart.passive="startStatusPanelDrag">
+          <p class="eyebrow">Status</p>
+          <span class="drag-hint">Перетащить</span>
+          <h2>Наладка</h2>
+        </div>
+
+        <div class="info-stack">
+          <div class="info-card">
+            <span class="info-label">Вкладки</span>
+            <strong class="info-value" v-text="tabs.length"></strong>
+          </div>
+          <div class="info-card">
+            <span class="info-label">Колонки DS</span>
+            <strong class="info-value" v-text="currentColumns.length"></strong>
+          </div>
+          <div class="info-card">
+            <span class="info-label">Строки</span>
+            <strong class="info-value" v-text="rows.length"></strong>
+          </div>
         </div>
 
         <section class="settings-group">
           <div class="settings-group-header">
-            <p class="eyebrow">Filters</p>
-            <h3>Фильтры</h3>
+            <p class="eyebrow">Current Scope</p>
+            <h3>Что уже подключено</h3>
           </div>
-
-          <div class="info-grid">
-            <div class="info-card">
-              <span class="info-label">Период</span>
-              <strong class="info-value" v-text="periodDisplayLabel"></strong>
-            </div>
-            <div class="info-card">
-              <span class="info-label">Доп. фильтры</span>
-              <strong class="info-value">Не заданы</strong>
-            </div>
-          </div>
-        </section>
-
-        <section class="settings-group">
-          <div class="settings-group-header">
-            <p class="eyebrow">View</p>
-            <h3>Параметры отображения</h3>
-          </div>
-
-          <div class="info-grid">
-            <div class="info-card">
-              <span class="info-label">Вкладки</span>
-              <strong class="info-value" v-text="tabs.length"></strong>
-            </div>
-            <div class="info-card">
-              <span class="info-label">Колонки DS</span>
-              <strong class="info-value" v-text="currentColumns.length"></strong>
-            </div>
-            <div class="info-card">
-              <span class="info-label">Строки</span>
-              <strong class="info-value" v-text="rows.length"></strong>
-            </div>
-          </div>
+          <ul class="plain-list">
+            <li>Стандартный блок периода проекта</li>
+            <li>Первая вкладка `Расходы DS`</li>
+            <li>Все поля из текущего datasource</li>
+            <li>Вторая вкладка `КП` как заготовка</li>
+          </ul>
         </section>
       </div>
     </aside>

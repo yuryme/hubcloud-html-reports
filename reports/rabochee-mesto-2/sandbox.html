@@ -11,6 +11,7 @@
     <div style="padding:24px;font-family:'Segoe UI',sans-serif;">Загружаю новый отчет...</div>
   </div>
 
+  <script src="./vendor/jquery-stub.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
   <script>
     var cacheKey = Date.now().toString();
@@ -20,7 +21,9 @@
         var script = document.createElement('script');
         script.src = src + (src.indexOf('?') === -1 ? '?' : '&') + 'v=' + cacheKey;
         script.onload = resolve;
-        script.onerror = reject;
+        script.onerror = function() {
+          reject(new Error('Не удалось загрузить скрипт: ' + src));
+        };
         document.body.appendChild(script);
       });
     }
@@ -63,7 +66,7 @@
         return loadJson('./report.default.json', 'HC_REPORT_DEFAULT_CONFIG')
           .then(function() { return loadJson('./report.manifest.json', 'HC_REPORT_MANIFEST'); })
           .then(function() { return loadText('./DS.txt', 'HC_REPORT_DS_TEXT'); })
-          .then(function() { return loadScript('../../core/script.core.js'); })
+          .then(function() { return loadScript('./script.core.local.js'); })
           .then(function() { return loadScript('./script.js'); });
       })
       .catch(function(error) {

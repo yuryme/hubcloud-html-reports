@@ -22,6 +22,9 @@ body {
     radial-gradient(circle at top left, rgba(47, 111, 170, 0.08), transparent 24%),
     linear-gradient(180deg, #f6f8fb 0%, #f1f4f8 100%);
 }
+#root.bt-header.bt-list {
+  min-height: 100vh;
+}
 button,input,select { font: inherit; }
 .page-shell {
   width: 100%;
@@ -414,10 +417,68 @@ h3 { margin-bottom: 0; font-size: 1.05rem; line-height: 1.2; }
 .toast-stack { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 10px; z-index: 1000; }
 .toast { min-width: 220px; max-width: 360px; padding: 14px 16px; border-radius: 14px; color: #fff; background: #244a7d; box-shadow: var(--shadow-lg); }
 .toast.is-error { background: #9f3948; }
+@media (min-width: 1367px) {
+  html,
+  body,
+  #root.bt-header.bt-list {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .page-shell {
+    height: calc(100vh - 24px);
+  }
+
+  .content-panel,
+  .side-panel,
+  .table-section,
+  .tab-panel {
+    min-height: 0;
+  }
+
+  .content-panel {
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+
+  .table-section {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100vh - 420px);
+  }
+
+  .tab-panel {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .table-scroll {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .side-panel {
+    overflow: auto;
+  }
+}
 @media (max-width: 1366px) {
+  html,
+  body,
+  #root.bt-header.bt-list {
+    height: 100%;
+    overflow: hidden;
+  }
+
   .page-shell {
     grid-template-columns: minmax(0, 1fr);
+    height: calc(100vh - 24px);
+    overflow: auto;
   }
+
+  .content-panel,
+  .side-panel {
+    min-height: 0;
+  }
+
   .side-panel {
     order: -1;
   }

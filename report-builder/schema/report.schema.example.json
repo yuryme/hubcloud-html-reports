@@ -1,0 +1,373 @@
+{
+  "version": 1,
+  "reportId": "manager-workspace-demo",
+  "reportTitle": "Рабочее место руководителя",
+  "template": "executive-workspace",
+  "description": "Пример минимальной схемы для локального конструктора отчётов",
+  "layout": {
+    "type": "two-column",
+    "settingsPanel": {
+      "enabled": true,
+      "position": "right",
+      "collapseToSingleColumnAt": 1366
+    },
+    "header": {
+      "enabled": true
+    },
+    "toolbar": {
+      "enabled": true
+    },
+    "statsRow": {
+      "enabled": true
+    }
+  },
+  "period": {
+    "enabled": true,
+    "type": "standard",
+    "defaultMode": "day",
+    "allowCustom": true,
+    "allowUnlimited": false,
+    "bindsTo": {
+      "dateStart": "&dateStart",
+      "dateFinish": "&dateFinish"
+    }
+  },
+  "lookups": {
+    "номер_заказа": {
+      "titleField": "номер_заказа_title",
+      "items": {
+        "231-OB": "231-OB",
+        "233-OB": "233-OB",
+        "234-OB": "234-OB"
+      }
+    }
+  },
+  "actions": [
+    {
+      "key": "refresh",
+      "label": "Обновить",
+      "style": "primary"
+    },
+    {
+      "key": "excel",
+      "label": "В Excel",
+      "style": "success"
+    }
+  ],
+  "tabs": [
+    {
+      "key": "expenses",
+      "title": "По документам",
+      "tableRef": "expensesTable",
+      "datasourceRef": "main"
+    },
+    {
+      "key": "byArticles",
+      "title": "По статьям",
+      "tableRef": "summaryTable",
+      "datasourceRef": "main"
+    }
+  ],
+  "filters": [
+    {
+      "key": "orderId",
+      "title": "Номер заказа",
+      "type": "select",
+      "multiple": false,
+      "uiPlacement": "settings-panel",
+      "source": {
+        "kind": "derived",
+        "fromDatasource": "main",
+        "valueField": "номер_заказа",
+        "titleField": "номер_заказа_title"
+      },
+      "bind": {
+        "placeholder": "&orderId",
+        "dslType": "string",
+        "optional": true
+      }
+    }
+  ],
+  "datasources": {
+    "main": {
+      "id": "main",
+      "title": "Основной источник",
+      "kind": "dsl-query",
+    "querySource": {
+      "mode": "file-sync",
+      "path": "DS.txt",
+      "text": "деньги | period (&dateStart, &dateFinish) | номер_заказа(&orderId) | Select(id, period, registrator_title, budgetitem_title, номер_заказа, номер_заказа_title, комментарий, коммент_директор, amount)"
+    },
+    "branches": [
+      {
+        "id": "byOrder",
+        "title": "По номеру заказа",
+        "when": {
+          "field": "orderId",
+          "operator": ">",
+          "value": 0
+        },
+        "query": "деньги | номер_заказа({{orderId}}) | Select(period, registrator, budgetitem, номер_заказа, комментарий, коммент_директор, amount) | Gettitle() | Having(номер_заказа>0)"
+      },
+      {
+        "id": "byPeriod",
+        "title": "По периоду",
+        "when": {
+          "else": true
+        },
+        "query": "деньги | period({{dateStart}}, {{dateFinish}}) | Select(period, registrator, budgetitem, номер_заказа, комментарий, коммент_директор, amount) | Gettitle()"
+      }
+    ],
+    "runtime": {
+      "endpoint": "/api/v1/WorkflowTrigger/start",
+      "method": "POST",
+      "dataPath": "data.data",
+      "bodyTemplate": "{\n  \"token\": \"{{token}}\",\n  \"parameters\": {\n    \"dateStart\": \"{{dateStart}}\",\n    \"dateFinish\": \"{{dateFinish}}\",\n    \"orderId\": {{orderId}}\n  }\n}"
+    },
+    "parameters": [
+        {
+          "name": "dateStart",
+          "placeholder": "&dateStart",
+          "source": "period.start",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "name": "dateFinish",
+          "placeholder": "&dateFinish",
+          "source": "period.finish",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "name": "orderId",
+          "placeholder": "&orderId",
+          "source": "filters.orderId",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "resultSchema": [
+        {
+          "field": "period",
+          "title": "Дата",
+          "type": "datetime"
+        },
+        {
+          "field": "registrator_title",
+          "title": "Операция",
+          "type": "string"
+        },
+        {
+          "field": "budgetitem_title",
+          "title": "Статья",
+          "type": "string"
+        },
+        {
+          "field": "номер_заказа",
+          "title": "Номер заказа",
+          "type": "string"
+        },
+        {
+          "field": "номер_заказа_title",
+          "title": "Номер заказа",
+          "type": "string"
+        },
+        {
+          "field": "комментарий",
+          "title": "Комментарий",
+          "type": "string"
+        },
+        {
+          "field": "коммент_директор",
+          "title": "Комментарий директора",
+          "type": "string"
+        },
+        {
+          "field": "amount",
+          "title": "Сумма, руб",
+          "type": "number"
+        }
+      ]
+    }
+  },
+  "tables": [
+    {
+      "id": "expensesTable",
+      "kind": "data-table",
+      "titleTemplate": "Поступления и выплаты за период {periodLabel}",
+      "source": "main",
+      "scroll": {
+        "vertical": true,
+        "horizontal": true,
+        "stickyHeader": true
+      },
+      "columns": [
+        {
+          "key": "registrator_title",
+          "title": "Операция",
+          "type": "text",
+          "sortable": true
+        },
+        {
+          "key": "period",
+          "title": "Дата",
+          "type": "date",
+          "sortable": true
+        },
+        {
+          "key": "budgetitem_title",
+          "title": "Статья",
+          "type": "text",
+          "sortable": true
+        },
+        {
+          "key": "номер_заказа",
+          "title": "Номер заказа",
+          "type": "text",
+          "lookup": {
+            "field": "номер_заказа",
+            "titleField": "номер_заказа_title"
+          }
+        },
+        {
+          "key": "комментарий",
+          "title": "Комментарий",
+          "type": "text",
+          "wrap": true
+        },
+        {
+          "key": "коммент_директор",
+          "title": "Комментарий директора",
+          "type": "editable-text",
+          "wrap": true
+        },
+        {
+          "key": "amount",
+          "title": "Сумма, руб",
+          "type": "number",
+          "align": "right",
+          "sortable": true
+        }
+      ]
+    },
+    {
+      "id": "summaryTable",
+      "title": "Итоги по статьям",
+      "kind": "data-table",
+      "source": "main",
+      "transform": {
+        "kind": "group-by",
+        "groupBy": [
+          "budgetitem_title"
+        ],
+        "aggregations": [
+          {
+            "field": "amount",
+            "op": "sum",
+            "as": "amount"
+          }
+        ]
+      },
+      "scroll": {
+        "vertical": true,
+        "horizontal": true,
+        "stickyHeader": true
+      },
+      "columns": [
+        {
+          "key": "budgetitem_title",
+          "title": "Статья",
+          "type": "text",
+          "sortable": true
+        },
+        {
+          "key": "amount",
+          "title": "Сумма, руб",
+          "type": "number",
+          "align": "right",
+          "sortable": true
+        }
+      ]
+    }
+  ],
+  "summaryCards": [
+    {
+      "key": "rowCount",
+      "title": "Строки",
+      "value": {
+        "kind": "row-count",
+        "sourceTable": "expensesTable"
+      },
+      "subtitle": "Записей на активной вкладке"
+    },
+    {
+      "key": "turnoverAmount",
+      "title": "Оборот",
+      "value": {
+        "kind": "sum",
+        "source": "main",
+        "field": "amount"
+      },
+      "subtitle": "Сумма по текущему источнику"
+    }
+  ],
+  "behavior": {
+    "runtimeModes": {
+      "mock": true,
+      "hubcloud": true
+    },
+    "excelExport": {
+      "enabled": true,
+      "sourceTable": "expensesTable"
+    }
+  },
+  "mock": {
+    "enabled": true,
+    "generator": {
+      "rowCount": 7
+    },
+    "rows": [
+      {
+        "registrator_title": "Заявка на оплату",
+        "period": "2026-04-09",
+        "budgetitem_title": "Маркетинг",
+        "номер_заказа": "231-OB",
+        "номер_заказа_title": "231-OB",
+        "комментарий": "Тестовая строка для проверки первой вкладки",
+        "коммент_директор": "",
+        "amount": 25500.5
+      },
+      {
+        "registrator_title": "Расходный ордер",
+        "period": "2026-04-10",
+        "budgetitem_title": "Логистика",
+        "номер_заказа": "231-OB",
+        "номер_заказа_title": "231-OB",
+        "комментарий": "Проверка длинного комментария в таблице",
+        "коммент_директор": "Согласовано",
+        "amount": -8150
+      },
+      {
+        "registrator_title": "Списание средств",
+        "period": "2026-04-11",
+        "budgetitem_title": "Административные расходы",
+        "номер_заказа": "233-OB",
+        "номер_заказа_title": "233-OB",
+        "комментарий": "Еще одна тестовая строка",
+        "коммент_директор": "На проверке",
+        "amount": -3200
+      },
+      {
+        "registrator_title": "Приходный ордер",
+        "period": "2026-04-12",
+        "budgetitem_title": "Аванс от клиента",
+        "номер_заказа": "234-OB",
+        "номер_заказа_title": "234-OB",
+        "комментарий": "Поступление по договору",
+        "коммент_директор": "",
+        "amount": 18600
+      }
+    ]
+  }
+}

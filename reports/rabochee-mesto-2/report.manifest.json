@@ -51,30 +51,3 @@
     }
   ]
 }
-
-
-{
-  "productGroup": "sweets",
-  "products": [
-    {
-      "gtin": "142323333233",
-      "quantity": 10,
-      "serialNumberType": "OPERATOR",
-      "templateId": 66,
-      "cisType": "UNIT"
-    },
-    {
-      "gtin": "142356656656",
-      "quantity": 5,
-      "serialNumberType": "OPERATOR",
-      "templateId": 66,
-      "cisType": "UNIT"
-    }
-  ],
-  "attributes": {
-    "contactPerson": "Балашова Елена",
-    "releaseMethodType": "PRODUCTION",
-    "createMethodType": "OPERATION",
-    "productionOrderId": "10005"
-  }
-}

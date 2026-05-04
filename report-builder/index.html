@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Конструктор отчетов</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="builder-shell">
+    <header class="builder-header">
+      <div>
+        <p class="eyebrow">Local Constructor</p>
+        <h1>Конструктор отчетов</h1>
+        <p class="lead">
+          Локальный MVP-редактор схемы отчёта для HubCloud. Источник истины:
+          <code>report.schema.json</code>.
+        </p>
+      </div>
+      <div class="header-actions">
+        <button id="newSchemaBtn" type="button" class="secondary-btn">Новый отчёт</button>
+        <button id="uploadSchemaBtn" type="button" class="secondary-btn">Загрузить схему</button>
+        <button id="downloadSchemaBtn" type="button" class="secondary-btn">Сохранить как</button>
+        <input id="schemaFileInput" type="file" accept=".json,application/json" hidden>
+      </div>
+    </header>
+
+    <main class="builder-grid">
+      <section class="panel">
+        <div class="panel-head panel-head-row">
+          <div>
+            <p class="eyebrow">Editor</p>
+            <h2>Базовые поля схемы</h2>
+          </div>
+          <div class="header-actions">
+            <button id="collapseAllSectionsBtn" type="button" class="secondary-btn">Скрыть все</button>
+            <button id="expandAllSectionsBtn" type="button" class="secondary-btn">Показать все</button>
+          </div>
+        </div>
+
+        <form id="schemaForm" class="form-grid">
+          <label class="field">
+            <span>Report ID</span>
+            <input id="reportId" name="reportId" type="text">
+          </label>
+
+          <label class="field">
+            <span>Название отчёта</span>
+            <input id="reportTitle" name="reportTitle" type="text">
+          </label>
+
+          <label class="field">
+            <span>Template</span>
+            <input id="template" name="template" type="text">
+          </label>
+
+          <label class="field field-wide">
+            <span>Описание</span>
+            <textarea id="description" name="description" rows="3"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Тип layout</span>
+            <select id="layoutType" name="layoutType">
+              <option value="two-column">two-column</option>
+              <option value="single-column">single-column</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Breakpoint collapse</span>
+            <input id="collapseToSingleColumnAt" name="collapseToSingleColumnAt" type="number" min="320" step="1">
+          </label>
+
+          <label class="field">
+            <span>Период по умолчанию</span>
+            <select id="defaultPeriodMode" name="defaultPeriodMode">
+              <option value="day">day</option>
+              <option value="month">month</option>
+              <option value="quarter">quarter</option>
+              <option value="year">year</option>
+              <option value="custom">custom</option>
+            </select>
+          </label>
+
+          <label class="field checkbox-field">
+            <input id="periodEnabled" name="periodEnabled" type="checkbox">
+            <span>Показывать блок периода</span>
+          </label>
+
+          <label class="field checkbox-field">
+            <input id="allowCustom" name="allowCustom" type="checkbox">
+            <span>Разрешить произвольный период</span>
+          </label>
+
+          <label class="field checkbox-field">
+            <input id="allowUnlimited" name="allowUnlimited" type="checkbox">
+            <span>Разрешить режим без ограничения</span>
+          </label>
+
+          <label class="field">
+            <span>Количество вкладок</span>
+            <input id="tabCount" name="tabCount" type="number" min="0" step="1" readonly>
+          </label>
+
+          <label class="field">
+            <span>Количество фильтров</span>
+            <input id="filterCount" name="filterCount" type="number" min="0" step="1" readonly>
+          </label>
+
+          <label class="field">
+            <span>Количество таблиц</span>
+            <input id="tableCount" name="tableCount" type="number" min="0" step="1" readonly>
+          </label>
+
+          <label class="field">
+            <span>Параметров DS</span>
+            <input id="parameterCount" name="parameterCount" type="number" min="0" step="1" readonly>
+          </label>
+
+          <label class="field">
+            <span>Полей результата</span>
+            <input id="resultFieldCount" name="resultFieldCount" type="number" min="0" step="1" readonly>
+          </label>
+
+          <label class="field">
+            <span>Active datasource</span>
+            <select id="datasourceSelector" name="datasourceSelector"></select>
+          </label>
+
+          <label class="field checkbox-field">
+            <button id="addDatasourceBtn" type="button" class="secondary-btn">Добавить источник</button>
+            <button id="removeDatasourceBtn" type="button" class="secondary-btn">Удалить источник</button>
+          </label>
+
+          <label class="field">
+            <span>Datasource ID</span>
+            <input id="mainDatasourceId" name="mainDatasourceId" type="text">
+          </label>
+
+          <label class="field field-wide">
+            <span>Datasource title</span>
+            <input id="mainDatasourceTitle" name="mainDatasourceTitle" type="text">
+          </label>
+
+          <label class="field field-wide">
+            <span>Datasource path</span>
+            <input id="mainDatasourcePath" name="mainDatasourcePath" type="text">
+          </label>
+
+          <textarea id="mainDatasourceQuery" name="mainDatasourceQuery" hidden></textarea>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>Ветки datasource</span>
+                <p>Ветки выбирают фактический query по параметрам тестового запуска. Если ни одно условие не подошло, используется ветка else.</p>
+              </div>
+              <button id="addDatasourceBranchBtn" type="button" class="secondary-btn">Добавить ветку</button>
+            </div>
+            <div id="datasourceBranchesEditor" class="datasource-branches-editor"></div>
+          </section>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>Runtime вызов DS</span>
+                <p>Техническое описание тестового POST-запроса хранится в <code>schema.datasources.main.runtime</code>. Токен сюда не сохраняем.</p>
+              </div>
+            </div>
+
+            <div class="runtime-editor">
+              <label class="field">
+                <span>Endpoint</span>
+                <input id="mainRuntimeEndpoint" name="mainRuntimeEndpoint" type="text">
+              </label>
+
+              <label class="field">
+                <span>Method</span>
+                <select id="mainRuntimeMethod" name="mainRuntimeMethod">
+                  <option value="POST">POST</option>
+                  <option value="GET">GET</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Data path</span>
+                <input id="mainRuntimeDataPath" name="mainRuntimeDataPath" type="text">
+              </label>
+
+              <label class="field field-wide">
+                <span>Body preview</span>
+                <textarea id="mainRuntimeBodyTemplate" name="mainRuntimeBodyTemplate" rows="6" readonly></textarea>
+              </label>
+            </div>
+
+            <section class="builder-subsection">
+              <div class="subsection-head">
+                <div>
+                  <span>Datasource parameters</span>
+                  <p>Эти параметры сохраняются в JSON схемы и используются для body тестового вызова и placeholder-подстановки в query.</p>
+                </div>
+                <button id="addDatasourceParameterBtn" type="button" class="secondary-btn">Добавить параметр</button>
+              </div>
+              <div id="datasourceParametersEditor" class="datasource-parameters-editor"></div>
+            </section>
+
+            <div class="connection-tester">
+              <div class="subsection-head">
+                <div>
+                  <span>Тестовое подключение</span>
+                  <p>Эти данные нужны только для проверки источника и не попадают в JSON схемы.</p>
+                </div>
+                <button id="previewRuntimeRequestBtn" type="button" class="secondary-btn">Получить данные</button>
+              </div>
+
+              <div class="connection-grid">
+                <label class="field">
+                  <span>HC Base URL</span>
+                  <input id="testHcBaseUrl" type="url" value="https://test.hubcloud.pro" placeholder="https://example.hubcloud.ru">
+                </label>
+
+                <label class="field">
+                  <span>Token</span>
+                  <input id="testHcToken" type="password" autocomplete="off" placeholder="Не сохраняется в JSON">
+                </label>
+
+                <div id="runtimeTestParameters" class="runtime-test-parameters"></div>
+              </div>
+
+              <label class="field field-wide">
+                <span>Ответ API JSON</span>
+                <textarea id="testApiResponseJson" rows="8" placeholder="{ &quot;data&quot;: [...] }"></textarea>
+              </label>
+
+              <div class="connection-actions">
+                <button id="importApiResponseBtn" type="button" class="secondary-btn">Сохранить ответ как mock</button>
+              </div>
+
+              <pre id="runtimeRequestStatus" class="connection-status">Тестовый запрос пока не собран.</pre>
+            </div>
+          </section>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>Поля источника данных</span>
+                <p>Описание результата DS хранится в <code>schema.datasources.main.resultSchema</code>.</p>
+              </div>
+              <button id="addResultFieldBtn" type="button" class="secondary-btn">Добавить поле</button>
+            </div>
+            <div id="resultSchemaEditor" class="result-schema-editor"></div>
+          </section>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>Фильтры</span>
+                <p>Список фильтров хранится в <code>schema.filters</code> и сразу меняет preview.</p>
+              </div>
+              <button id="addFilterBtn" type="button" class="secondary-btn">Добавить фильтр</button>
+            </div>
+            <div id="filtersEditor" class="filters-editor"></div>
+          </section>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>Вкладки</span>
+                <p>Вкладки хранятся в <code>schema.tabs</code> и управляют кнопками представлений.</p>
+              </div>
+              <button id="addTabBtn" type="button" class="secondary-btn">Добавить вкладку</button>
+            </div>
+            <div id="tabsEditor" class="tabs-editor"></div>
+          </section>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>Таблицы</span>
+                <p>Таблицы хранятся в <code>schema.tables</code>; вкладки выбирают их через <code>tableRef</code>.</p>
+              </div>
+              <button id="addTableBtn" type="button" class="secondary-btn">Добавить таблицу</button>
+            </div>
+            <div id="tablesEditor" class="tables-editor"></div>
+          </section>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>План данных</span>
+                <p>Проверка связей: какие таблицы используют какие datasource, сколько веток и mock-строк есть у каждого источника.</p>
+              </div>
+            </div>
+            <div id="dataPlanView" class="data-plan-view"></div>
+          </section>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>Колонки таблицы</span>
+                <p>Колонки редактируются для выбранной таблицы и сразу перестраивают preview.</p>
+              </div>
+              <button id="addColumnBtn" type="button" class="secondary-btn">Добавить колонку</button>
+            </div>
+            <div id="columnsEditor" class="columns-editor"></div>
+          </section>
+
+          <section class="field field-wide builder-subsection">
+            <div class="subsection-head">
+              <div>
+                <span>Итоговые карточки</span>
+                <p>Карточки хранятся в <code>schema.summaryCards</code> и считаются по mock-строкам.</p>
+              </div>
+              <button id="addSummaryCardBtn" type="button" class="secondary-btn">Добавить карточку</button>
+            </div>
+            <div id="summaryCardsEditor" class="summary-cards-editor"></div>
+          </section>
+        </form>
+      </section>
+
+      <aside class="side-column">
+        <section class="panel info-panel">
+          <div class="panel-head">
+            <p class="eyebrow">Summary</p>
+            <h2>Состояние схемы</h2>
+          </div>
+          <dl class="summary-list">
+            <div>
+              <dt>Report ID</dt>
+              <dd id="summaryReportId">-</dd>
+            </div>
+            <div>
+              <dt>Template</dt>
+              <dd id="summaryTemplate">-</dd>
+            </div>
+            <div>
+              <dt>Layout</dt>
+              <dd id="summaryLayout">-</dd>
+            </div>
+            <div>
+              <dt>Datasource file</dt>
+              <dd id="summaryDatasourcePath">-</dd>
+            </div>
+            <div>
+              <dt>Datasource params</dt>
+              <dd id="summaryParameterCount">0</dd>
+            </div>
+          </dl>
+        </section>
+
+      </aside>
+    </main>
+
+    <section class="panel artifacts-panel">
+      <div class="panel-head panel-head-row">
+        <div>
+          <p class="eyebrow">Generator</p>
+          <h2>Черновой HC-пакет</h2>
+        </div>
+        <div class="header-actions">
+          <button id="copyArtifactBtn" type="button" class="secondary-btn">Скопировать текущий файл</button>
+          <button id="downloadArtifactBtn" type="button" class="secondary-btn">Скачать текущий файл</button>
+        </div>
+      </div>
+
+      <p class="artifacts-note">
+        Это первый MVP-генератор. Он собирает стартовые файлы из схемы и помогает быстро увидеть каркас отчёта.
+      </p>
+
+      <div class="artifact-tabs" id="artifactTabs">
+        <button type="button" class="artifact-tab is-active" data-artifact="index.html">index.html</button>
+        <button type="button" class="artifact-tab" data-artifact="hc-report.css">hc-report.css</button>
+        <button type="button" class="artifact-tab" data-artifact="script.js">script.js</button>
+        <button type="button" class="artifact-tab" data-artifact="report.schema.json">report.schema.json</button>
+      </div>
+
+      <pre id="artifactPreview" class="json-preview artifact-preview">Генерация пакета...</pre>
+      <p id="artifactCopyStatus" class="copy-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel live-preview-panel">
+      <div class="panel-head panel-head-row">
+        <div>
+          <p class="eyebrow">Live Preview</p>
+          <h2>Образец отчёта по текущим данным</h2>
+        </div>
+        <div class="header-actions">
+          <button id="openPreviewBtn" type="button" class="secondary-btn">Открыть в отдельной вкладке</button>
+        </div>
+      </div>
+
+      <p class="artifacts-note">
+        Этот блок показывает, как будет выглядеть базовый отчёт, если собрать его из текущей схемы прямо сейчас.
+      </p>
+
+      <iframe
+        id="livePreviewFrame"
+        class="live-preview-frame"
+        title="Образец отчёта"
+      ></iframe>
+    </section>
+
+  </div>
+
+  <script src="./app.js?v=20260503-collapsible-sections"></script>
+</body>
+</html>

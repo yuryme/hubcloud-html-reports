@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "reportId": "new-report",
+  "reportTitle": "Новый отчёт",
+  "template": "hubcloud-report",
+  "description": "",
+  "layout": {
+    "type": "two-column",
+    "settingsPanel": {
+      "enabled": true,
+      "position": "right",
+      "collapseToSingleColumnAt": 1366
+    },
+    "header": {
+      "enabled": true
+    },
+    "toolbar": {
+      "enabled": true
+    },
+    "statsRow": {
+      "enabled": true
+    }
+  },
+  "period": {
+    "enabled": true,
+    "type": "standard",
+    "defaultMode": "day",
+    "allowCustom": true,
+    "allowUnlimited": false,
+    "bindsTo": {
+      "dateStart": "&dateStart",
+      "dateFinish": "&dateFinish"
+    }
+  },
+  "lookups": {},
+  "actions": [
+    {
+      "key": "refresh",
+      "label": "Обновить",
+      "style": "primary"
+    },
+    {
+      "key": "excel",
+      "label": "В Excel",
+      "style": "success"
+    }
+  ],
+  "tabs": [
+    {
+      "key": "main",
+      "title": "Основная таблица",
+      "tableRef": "mainTable",
+      "datasourceRef": "main"
+    }
+  ],
+  "filters": [],
+  "datasources": {
+    "main": {
+      "id": "main",
+      "title": "Основной источник",
+      "kind": "dsl-query",
+      "querySource": {
+        "mode": "schema",
+        "path": "",
+        "text": ""
+      },
+      "branches": [
+        {
+          "id": "default",
+          "title": "Default",
+          "when": {
+            "else": true
+          },
+          "query": ""
+        }
+      ],
+      "runtime": {
+        "endpoint": "/api/v1/WorkflowTrigger/start",
+        "method": "POST",
+        "dataPath": "data.data",
+        "bodyTemplate": "{\n  \"token\": \"{{token}}\",\n  \"parameters\": {\n    \"dateStart\": \"{{dateStart}}\",\n    \"dateFinish\": \"{{dateFinish}}\"\n  }\n}"
+      },
+      "parameters": [
+        {
+          "name": "dateStart",
+          "placeholder": "&dateStart",
+          "source": "period.start",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "name": "dateFinish",
+          "placeholder": "&dateFinish",
+          "source": "period.finish",
+          "type": "datetime",
+          "required": true
+        }
+      ],
+      "resultSchema": []
+    }
+  },
+  "tables": [
+    {
+      "id": "mainTable",
+      "title": "Основная таблица",
+      "kind": "data-table",
+      "source": "main",
+      "scroll": {
+        "vertical": true,
+        "horizontal": true,
+        "stickyHeader": true
+      },
+      "columns": []
+    }
+  ],
+  "summaryCards": [],
+  "behavior": {
+    "filters": {
+      "mode": "client"
+    },
+    "excelExport": {
+      "enabled": true,
+      "sourceTable": "mainTable"
+    }
+  },
+  "mock": {
+    "enabled": true,
+    "generator": {
+      "rowCount": 0
+    },
+    "rows": []
+  }
+}
