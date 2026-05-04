@@ -4,6 +4,8 @@ Thumbs.db
 
 # Local dev logs and runtime artifacts
 dev-server*.log
+.tmp.driveupload/
+.tmp.drivedownload/
 
 # PowerShell local cache dropped by environment
 Microsoft/Windows/PowerShell/ModuleAnalysisCache
